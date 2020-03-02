@@ -1,0 +1,12 @@
+U:\Source\Repos\absentismus\Absentismus\bin\Debug\Absentismus.exe.config
+U:\Source\Repos\absentismus\Absentismus\bin\Debug\Absentismus.exe
+U:\Source\Repos\absentismus\Absentismus\bin\Debug\Absentismus.pdb
+U:\Source\Repos\absentismus\Absentismus\obj\Debug\Absentismus.csprojResolveAssemblyReference.cache
+U:\Source\Repos\absentismus\Absentismus\obj\Debug\Absentismus.exe
+U:\Source\Repos\absentismus\Absentismus\obj\Debug\Absentismus.pdb
+U:\Source\Repos\absentismus\Absentismus\bin\Debug\Microsoft.Exchange.WebServices.Auth.dll
+U:\Source\Repos\absentismus\Absentismus\bin\Debug\Microsoft.Exchange.WebServices.dll
+U:\Source\Repos\absentismus\Absentismus\bin\Debug\Microsoft.Exchange.WebServices.pdb
+U:\Source\Repos\absentismus\Absentismus\bin\Debug\Microsoft.Exchange.WebServices.xml
+U:\Source\Repos\absentismus\Absentismus\bin\Debug\Microsoft.Exchange.WebServices.Auth.pdb
+U:\Source\Repos\absentismus\Absentismus\bin\Debug\Microsoft.Exchange.WebServices.Auth.xml
