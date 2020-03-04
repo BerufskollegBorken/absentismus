@@ -2,14 +2,26 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Odbc;
+using System.IO;
 using System.Linq;
 
 namespace Absentismus
 {
     public class Schuelers : List<Schueler>
     {
-        public Schuelers(string connectionStringAtlantis, string inputAbwesenheitenCsv, Feriens feriens)
+        private object schueler;
+
+        public Schuelers()
         {
+        }
+
+        public Schuelers(Ordnungsmaßnahmen ordnungsmaßnahmen)
+        {
+        }
+
+        public Schuelers(string connectionStringAtlantis, string inputAbwesenheitenCsv, Feriens feriens, Ordnungsmaßnahmen ordnungsmaßnahmen, Klasses klasses, Lehrers lehrers)
+        {
+            string s = "";
             try
             {
                 List<string> aktSj = new List<string>
@@ -33,7 +45,7 @@ DBA.schueler.name_1 AS Nachname,
 DBA.schueler.name_2 AS Vorname,
 DBA.schueler.dat_geburt AS GebDat,
 DBA.klasse.klasse AS Klasse
-FROM ( DBA.schue_sj JOIN DBA.schueler ON DBA.schue_sj.pu_id = DBA.schueler.pu_id ) JOIN DBA.klasse ON DBA.schue_sj.kl_id = DBA.klasse.kl_id
+FROM ( DBA.schue_sj JOIN DBA.schueler ON DBA.schue_sj.pu_id = DBA.schueler.pu_id ) JOIN DBA.klasse ON DBA.schue_sj.kl_id = DBA.klasse.kl_id 
 WHERE vorgang_schuljahr = '" + aktSj[0] + "/" + aktSj[1] + "'", connection);
 
                     connection.Open();
@@ -47,15 +59,16 @@ WHERE vorgang_schuljahr = '" + aktSj[0] + "/" + aktSj[1] + "'", connection);
                         string klasse = theRow["Klasse"] == null ? "" : theRow["Klasse"].ToString();
                         string nachname = theRow["Nachname"] == null ? "" : theRow["Nachname"].ToString();
                         string vorname = theRow["Vorname"] == null ? "" : theRow["Vorname"].ToString();
-                        
+
                         Schueler schueler = new Schueler(
                             id, 
                             nachname,
                             vorname,
                             gebdat, 
-                            klasse, 
+                            GetKlasse(klasses, klasse),
                             (from a in abwesenheiten where a.StudentId == id select a).ToList(),
-                            feriens
+                            feriens,
+                            (from o in ordnungsmaßnahmen where o.SchuelerId == id select o).ToList()
                             )
                             ;
                         
@@ -71,37 +84,86 @@ WHERE vorgang_schuljahr = '" + aktSj[0] + "/" + aktSj[1] + "'", connection);
             }            
         }
 
-        internal void GetNichtSchulpflichtigeSchulerMit20FehlstundenIn30Tagen(Klasses klasses)
+        private Klasse GetKlasse(Klasses klasses, string klasse)
         {
-            Console.WriteLine("Nicht-schulpflichtige Schüler, auf die §53(4) [20 Stunden in 30 Tagen] zutrifft.");
-            Console.WriteLine("===============================================================================");
+            return (from k in klasses where k.NameUntis == klasse select k).FirstOrDefault();
+        }
+
+        internal void GetNichtSchulpflichtigeSchulerMit20FehlstundenIn30Tagen(Klasses klasses, string aktSjAtlantis, string connectionStringAtlantis, int sj)
+        {
+            Console.WriteLine("Schüler, auf die §53(4) [20 Stunden in 30 Tagen] zutrifft.");
+            Console.WriteLine("==========================================================");
 
             int i = 1;
 
             foreach (var klasse in klasses)
             {
-                foreach (var schueler in (from s in this where s.Klasse == klasse.NameUntis select s).ToList())
-                {
-                    int unentschu = (from u in schueler.UnentschuldigteFehlstundenInLetzten30Tagen select u.Fehlstunden).Sum();
+                string meldung = "<table border='1'><tr><th>Nr</th><th>Name</th><th>Geb</th><th>Klasse</th><th>Vollj.</th><th>Schulpfl.</th><th>unent.</br>Fehlstd.</th><th>Erz. Gespr. Schulleit.</th><th>Mahnung</th><th>Bußgeld</th><th>OM</th></tr>";
 
-                    if (unentschu > 20)
-                    {
-                        if (!schueler.IstSchulpflichtig)
+                List<string> fileNames = new List<string>();
+
+                Schuelers sch = new Schuelers();
+
+                try
+                {
+                    foreach (var schueler in (from s in this where s.Klasse != null where s.Klasse.NameUntis == klasse.NameUntis select s).ToList())
+                    {                       
+                        int unentschuldigt = (from u in schueler.UnentschuldigteFehlstundenInLetzten30Tagen select u.Fehlstunden).Sum();
+
+                        if (unentschuldigt > 20)
                         {
-                            Console.WriteLine(i.ToString().PadLeft(3) + ". " + schueler.Nachname + "," + schueler.Vorname + " (" + schueler.Id + ") Geb: " + schueler.Gebdat.ToShortDateString() + " Klasse: " + schueler.Klasse + " Fehlstunden: " + unentschu);
+                            schueler.GetAdresse(aktSjAtlantis, connectionStringAtlantis);
+
+                            sch.Add(schueler);
+
+                            Console.WriteLine(i.ToString().PadLeft(3) + ". " + schueler.Nachname + "," + schueler.Vorname + " (" + schueler.Id + "); " + schueler.Gebdat.ToShortDateString() + "; " + (schueler.IstSchulpflichtig ? "schulpfl.; " : "nicht schulpfl.; ") + (schueler.IstVolljährig ? "vollj.; " : "nicht vollj.; ") + " Klasse: " + schueler.Klasse.NameUntis + " unent.Fehlst.: " + unentschuldigt);
+
+                            meldung += "<tr><td>" + i + ".</td><td>" + schueler.Nachname + "," + schueler.Vorname + "</td><td>" + schueler.Gebdat.ToShortDateString() + "</td><td>" + schueler.Klasse.NameUntis + "</td><td>" + (schueler.IstVolljährig ? "ja" : "nein") + "</td><td>" + (schueler.IstSchulpflichtig ? "ja" : "nein") + "</td><td>" + unentschuldigt + "</td><td>" + schueler.GetE1Datum() + "</td><td>" + schueler.GetM1Datum() + " " + schueler.GetM2Datum() + "</td><td>" + schueler.GetADatum() + "</td><td>" + schueler.GetOMDatum() + "</td></tr>";
                             i++;
 
-                            foreach (var u in schueler.UnentschuldigteFehlstundenInLetzten30Tagen)
-                            {
-                                Console.WriteLine("      " + u.Datum.ToShortDateString() + " Stunden:" + u.Fehlstunden);
-                            }
+                            schueler.RenderOrdnungsmaßnahmen();
+
+                            schueler.RenderUnentschuldigteFehlstunden();
+
+                            fileNames.Add(schueler.CreateWordDocument(sj));
                         }
                     }
                 }
-                if (i > 0)
+                catch (Exception ex)
                 {
-
+                    Console.WriteLine(ex.ToString());
                 }
+                
+                meldung += "</table>";
+
+                if (meldung.Contains("1."))
+                {   
+                    var body = @"Hallo" + 
+"</br>" +
+"Sie erhaltenen diese Mail in Ihrer Eigenschaft als Klassenleitung der Klasse " + klasse.NameUntis + "." +
+"</br>" +
+"Die unentschuldigten Fehlzeiten der letzten 30 Tage wurden überprüft. Bei der Durchsicht der Klasse " + klasse.NameUntis + " sind folgende Unregelmäßigkeiten aufgefallen:" +
+"</br>"
++ meldung +
+"</br>Ihre Aufgabe als Klassenleitung ist Überwachung der Schulpflicht. Zu Ihrer Unterstützung hängen dieser Mail bereits alle Dokumente an.</br>" +
+"Bitte veranlassen Sie weitere Schritte" 
+;
+                    
+                    Global.MailSenden(
+                        klasse, 
+                        "Schulpflichtüberwachung in Klasse " + klasse.NameUntis, 
+                        body, fileNames);
+
+                    RemoveFiles(fileNames);
+                }                
+            }
+        }
+
+        private void RemoveFiles(List<string> fileNames)
+        {
+            foreach (string f in fileNames)
+            {
+                File.Delete(f);
             }
         }
 
@@ -116,8 +178,11 @@ WHERE vorgang_schuljahr = '" + aktSj[0] + "/" + aktSj[1] + "'", connection);
             {
                 if (schueler.FehltUnentschuldigtSeitTagen >= 20)
                 {
-                    Console.WriteLine(i.ToString().PadLeft(3) + ". " + schueler.Nachname + "," + schueler.Vorname + " (" + schueler.Id + ") Klasse: " + schueler.Klasse);
-                    i++;
+                    if (!schueler.IstSchulpflichtig)
+                    {
+                        Console.WriteLine(i.ToString().PadLeft(3) + ". " + schueler.Nachname + "," + schueler.Vorname + " (" + schueler.Id + ") Klasse: " + schueler.Klasse);
+                        i++;
+                    }
                 }
             }
         }

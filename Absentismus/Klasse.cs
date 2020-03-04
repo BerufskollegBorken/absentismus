@@ -13,6 +13,7 @@ namespace Absentismus
         public Raum Raum { get; internal set; }
         public string Url { get; internal set; }
         public string Jahrgang { get; internal set; }
-        public DateTime ErsterSchultag { get; internal set; }        
+        public DateTime ErsterSchultag { get; internal set; }
+                
     }
 }

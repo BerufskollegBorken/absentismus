@@ -41,6 +41,11 @@
     <Reference Include="Microsoft.Exchange.WebServices.Auth, Version=15.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <HintPath>..\packages\Microsoft.Exchange.WebServices.2.2\lib\40\Microsoft.Exchange.WebServices.Auth.dll</HintPath>
     </Reference>
+    <Reference Include="Microsoft.Office.Interop.Word, Version=15.0.0.0, Culture=neutral, PublicKeyToken=71e9bce111e9429c, processorArchitecture=MSIL">
+      <EmbedInteropTypes>True</EmbedInteropTypes>
+      <HintPath>..\packages\Microsoft.Office.Interop.Word.15.0.4797.1003\lib\net20\Microsoft.Office.Interop.Word.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -53,6 +58,8 @@
   <ItemGroup>
     <Compile Include="Abwesenheit.cs" />
     <Compile Include="Abwesenheiten.cs" />
+    <Compile Include="Adresse.cs" />
+    <Compile Include="Adressen.cs" />
     <Compile Include="Ferien.cs" />
     <Compile Include="Feriens.cs" />
     <Compile Include="Global.cs" />
@@ -60,6 +67,8 @@
     <Compile Include="Klasses.cs" />
     <Compile Include="Lehrer.cs" />
     <Compile Include="Lehrers.cs" />
+    <Compile Include="Ordnungsmaßnahme.cs" />
+    <Compile Include="Ordnungsmaßnahmen.cs" />
     <Compile Include="Periode.cs" />
     <Compile Include="Periodes.cs" />
     <Compile Include="Program.cs" />

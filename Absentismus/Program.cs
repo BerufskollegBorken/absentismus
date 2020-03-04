@@ -14,6 +14,8 @@ namespace Absentismus
 
         static void Main(string[] args)
         {
+            System.Net.ServicePointManager.ServerCertificateValidationCallback = ((sender, certificate, chain, sslPolicyErrors) => true);
+
             string inputAbwesenheitenCsv = "";
 
             try
@@ -23,13 +25,7 @@ namespace Absentismus
                 int sj = (DateTime.Now.Month >= 8 ? DateTime.Now.Year : DateTime.Now.Year - 1);
                 string aktSjUntis = sj.ToString() + (sj + 1);
                 string aktSjAtlantis = sj.ToString() + "/" + (sj + 1 - 2000);
-
-                Feriens feriens = new Feriens(aktSjUntis, ConnectionStringUntis);               
-                Periodes periodes = new Periodes(aktSjUntis, ConnectionStringUntis);
-                Raums raums = new Raums(aktSjUntis, ConnectionStringUntis, periodes);
-                Lehrers lehrers = new Lehrers(aktSjUntis, raums, ConnectionStringUntis, periodes);
-                Klasses klasses = new Klasses(aktSjUntis, lehrers, raums, ConnectionStringUntis, periodes);
-
+                
                 Console.WriteLine(" Absentismus | Published under the terms of GPLv3 | Stefan Bäumer 2019 | Version 20200302");
                 Console.WriteLine("====================================================================================================");
                 
@@ -45,13 +41,17 @@ namespace Absentismus
                     }
                 }
 
-                Console.WriteLine("");
+                Feriens feriens = new Feriens(aktSjUntis, ConnectionStringUntis);
+                Periodes periodes = new Periodes(aktSjUntis, ConnectionStringUntis);
+                Raums raums = new Raums(aktSjUntis, ConnectionStringUntis, periodes);
+                Lehrers lehrers = new Lehrers(aktSjUntis, raums, ConnectionStringUntis, periodes);
+                Klasses klasses = new Klasses(aktSjUntis, lehrers, raums, ConnectionStringUntis, periodes);
+                Ordnungsmaßnahmen ordnungsmaßnahmen = new Ordnungsmaßnahmen(aktSjAtlantis, ConnectionStringAtlantis);
+                Schuelers schuelers = new Schuelers(ConnectionStringAtlantis, inputAbwesenheitenCsv, feriens, ordnungsmaßnahmen,klasses,lehrers);
 
-                Schuelers schuelers = new Schuelers(ConnectionStringAtlantis, inputAbwesenheitenCsv, feriens);
-
-                schuelers.GetNichtSchulpflichtigeSchulerMit20FehlstundenIn30Tagen(klasses);
+                schuelers.GetNichtSchulpflichtigeSchulerMit20FehlstundenIn30Tagen(klasses, aktSjAtlantis, ConnectionStringAtlantis, sj);
                 
-                schuelers.GetSchulerMit20UnunterbrochenenUnentschuldigtenFehltagen();
+                //schuelers.GetSchulerMit20UnunterbrochenenUnentschuldigtenFehltagen();
 
                 Console.ReadKey();
             }
