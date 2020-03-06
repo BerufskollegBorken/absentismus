@@ -89,7 +89,7 @@ WHERE vorgang_schuljahr = '" + aktSj[0] + "/" + aktSj[1] + "'", connection);
             return (from k in klasses where k.NameUntis == klasse select k).FirstOrDefault();
         }
 
-        internal void GetNichtSchulpflichtigeSchulerMit20FehlstundenIn30Tagen(Klasses klasses, string aktSjAtlantis, string connectionStringAtlantis, int sj)
+        internal void GetSchulerMit20FehlstundenIn30Tagen(Klasses klasses, string aktSjAtlantis, string connectionStringAtlantis, int sj, Feriens feriens)
         {
             Console.WriteLine("Schüler, auf die §53(4) [20 Stunden in 30 Tagen] zutrifft.");
             Console.WriteLine("==========================================================");
@@ -98,7 +98,7 @@ WHERE vorgang_schuljahr = '" + aktSj[0] + "/" + aktSj[1] + "'", connection);
 
             foreach (var klasse in klasses)
             {
-                string meldung = "<table border='1'><tr><th>Nr</th><th>Name</th><th>Geb</th><th>Klasse</th><th>Vollj.</th><th>Schulpfl.</th><th>unent.</br>Fehlstd.</th><th>Erz. Gespr. Schulleit.</th><th>Mahnung</th><th>Bußgeld</th><th>OM</th></tr>";
+                string meldung = "<table border='1'><tr><th>Nr</th><th>Name</th><th>Geb</th><th>Klasse</th><th>Vollj.</th><th>Schulpfl.</th><th>unent.</br>Fehlstd.</br>*)</th><th>ununt.</br>Fehltage</br>**)</th><th>Erz. Gespr. Schulleit.</th><th>Mahnung</th><th>Bußgeld</th><th>OM</th></tr>";
 
                 List<string> fileNames = new List<string>();
 
@@ -118,7 +118,7 @@ WHERE vorgang_schuljahr = '" + aktSj[0] + "/" + aktSj[1] + "'", connection);
 
                             Console.WriteLine(i.ToString().PadLeft(3) + ". " + schueler.Nachname + "," + schueler.Vorname + " (" + schueler.Id + "); " + schueler.Gebdat.ToShortDateString() + "; " + (schueler.IstSchulpflichtig ? "schulpfl.; " : "nicht schulpfl.; ") + (schueler.IstVolljährig ? "vollj.; " : "nicht vollj.; ") + " Klasse: " + schueler.Klasse.NameUntis + " unent.Fehlst.: " + unentschuldigt);
 
-                            meldung += "<tr><td>" + i + ".</td><td>" + schueler.Nachname + "," + schueler.Vorname + "</td><td>" + schueler.Gebdat.ToShortDateString() + "</td><td>" + schueler.Klasse.NameUntis + "</td><td>" + (schueler.IstVolljährig ? "ja" : "nein") + "</td><td>" + (schueler.IstSchulpflichtig ? "ja" : "nein") + "</td><td>" + unentschuldigt + "</td><td>" + schueler.GetE1Datum() + "</td><td>" + schueler.GetM1Datum() + " " + schueler.GetM2Datum() + "</td><td>" + schueler.GetADatum() + "</td><td>" + schueler.GetOMDatum() + "</td></tr>";
+                            meldung += "<tr><td>" + i + ".</td><td>" + schueler.Nachname + "," + schueler.Vorname + "</td><td>" + schueler.Gebdat.ToShortDateString() + "</td><td>" + schueler.Klasse.NameUntis + "</td><td>" + (schueler.IstVolljährig ? "ja" : "nein") + "</td><td>" + (schueler.IstSchulpflichtig ? "ja" : "nein") + "</td><td>" + unentschuldigt + "</td><td>" + schueler.FehltUnentschuldigtSeitTagen + "</td><td>" + schueler.GetE1Datum() + "</td><td>" + schueler.GetM1Datum() + " " + schueler.GetM2Datum() + "</td><td>" + schueler.GetADatum() + "</td><td>" + schueler.GetOMDatum() + "</td></tr>";
                             i++;
 
                             schueler.RenderOrdnungsmaßnahmen();
@@ -135,7 +135,8 @@ WHERE vorgang_schuljahr = '" + aktSj[0] + "/" + aktSj[1] + "'", connection);
                 }
                 
                 meldung += "</table>";
-
+                meldung += "*) SchulG §53 (4):  Die Entlassung einer Schülerin oder eines Schülers, die oder der nicht mehr schulpflichtig ist, kann ohne vorherige Androhung erfolgen, wenn die Schülerin oder der Schüler innerhalb eines Zeitraumes von 30 Tagen insgesamt 20 Unterrichtsstunden unentschuldigt versäumt hat</br>";
+                meldung += "**) SchulG §47 (1):  Das Schulverhältnis endet, wenn die nicht mehr schulpflichtige Schülerin oder der nicht mehr schulpflichtige Schüler trotz schriftlicher Erinnerung ununterbrochen 20 Unterrichtstage unentschuldigt fehlt.";
                 if (meldung.Contains("1."))
                 {   
                     var body = @"Hallo" + 

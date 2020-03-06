@@ -3,3 +3,4 @@
 \\fs01\Schulverwaltung\Absentismus\Absentismus.pdb
 U:\Source\Repos\absentismus\Absentismus\obj\Release\Absentismus.exe
 U:\Source\Repos\absentismus\Absentismus\obj\Release\Absentismus.pdb
+U:\Source\Repos\absentismus\Absentismus\obj\Release\Absentismus.csprojResolveAssemblyReference.cache

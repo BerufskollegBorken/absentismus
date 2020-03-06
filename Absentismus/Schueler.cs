@@ -30,10 +30,6 @@ namespace Absentismus
             Gebdat = gebdat;
             Klasse = klasse;
             Abwesenheiten = abwesenheiten;
-            if (Id == 151118)
-            {
-                string a = "";
-            }
             IstSchulpflichtig = GetSchulpflicht();
             IstVolljährig = GetVolljährigkeit();
             UnentschuldigteFehlstundenInLetzten30Tagen = GetUnenrschuldigteFehlstundenInLetzten30Tagen();
@@ -56,18 +52,24 @@ namespace Absentismus
 
             for (int t = -1; t > -28; t--)
             {
-                var tag = DateTime.Now.Date.AddDays(t);
-
-                if (!(tag.DayOfWeek == DayOfWeek.Sunday || tag.DayOfWeek == DayOfWeek.Saturday || feriens.IstFerienTag(tag))  )
+                DateTime tag = DateTime.Now.Date.AddDays(t);
+                
+                if (!(tag.DayOfWeek == DayOfWeek.Sunday))
                 {
-                    if ((from a in this.Abwesenheiten where a.Datum.Date == tag.Date select a).Any())
+                    if (!(tag.DayOfWeek == DayOfWeek.Saturday))
                     {
-                        fehltUnentschuldigtSeitTagen++;
-                    }
-                    else
-                    {
-                        return fehltUnentschuldigtSeitTagen;
-                    }
+                        if (!feriens.IstFerienTag(tag))
+                        {
+                            if ((from a in this.Abwesenheiten where a.Datum.Date == tag.Date select a).Any())
+                            {
+                                fehltUnentschuldigtSeitTagen++;
+                            }
+                            else
+                            {
+                                return fehltUnentschuldigtSeitTagen;
+                            }
+                        }
+                    }                    
                 }
             }
             return fehltUnentschuldigtSeitTagen;
@@ -76,6 +78,7 @@ namespace Absentismus
         private List<Abwesenheit> GetUnenrschuldigteFehlstundenInLetzten30Tagen()
         {
             List<Abwesenheit> offeneAbwesenheiten = new List<Abwesenheit>();
+            List<Abwesenheit> offeneAbwesenheiten30 = new List<Abwesenheit>();
 
             foreach (var a in this.Abwesenheiten)
             {
@@ -83,8 +86,9 @@ namespace Absentismus
                 {
                     if (a.Datum > DateTime.Now.AddDays(-30))
                     {
-                        offeneAbwesenheiten.Add(a);
+                        offeneAbwesenheiten30.Add(a);
                     }
+                    offeneAbwesenheiten.Add(a);
                 }
             }
             return offeneAbwesenheiten;            
@@ -96,7 +100,7 @@ namespace Absentismus
             {
                 // Bei Vollzeitschülern der Anlage B, C, D endet die Schulpflicht am Ende des Schuljahres, in dem der Schüler 18 wird.
 
-                if (Klasse.NameUntis.StartsWith("HH") || Klasse.NameUntis.StartsWith("HBT") || Klasse.NameUntis.StartsWith("HBF"))
+                if (Klasse.NameUntis.StartsWith("HH") || Klasse.NameUntis.StartsWith("HBT") || Klasse.NameUntis.StartsWith("HBF") || Klasse.NameUntis.StartsWith("12"))
                 {
                     // Wenn der Schüler 18 ist ...
 
