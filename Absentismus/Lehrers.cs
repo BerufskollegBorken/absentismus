@@ -53,9 +53,9 @@ WHERE (((SCHOOLYEAR_ID)= " + aktSj + ") AND  ((TERM_ID)=" + periodes.Count + ") 
                         };
 
                         if (!lehrer.Mail.EndsWith("@berufskolleg-borken.de") && lehrer.Kürzel != "LAT" && lehrer.Kürzel != "?")
-                            Console.WriteLine("Untis2Exchange Fehlermeldung", "Der Lehrer " + lehrer.Kürzel + " hat keine Mail-Adresse in Untis. Bitte in Untis eintragen.");
-                        if (lehrer.Anrede == "")
-                            Console.WriteLine("Untis2Exchange Fehlermeldung", "Der Lehrer " + lehrer.Kürzel + " hat keinGeschlecht in Untis. Bitte in Untis eintragen.");
+                            Console.WriteLine("Untis2Exchange Fehlermeldung: Der Lehrer " + lehrer.Kürzel + " hat keine Mail-Adresse in Untis. Bitte in Untis eintragen.");
+                        if (lehrer.Anrede == "" && lehrer.Kürzel != "LAT" && lehrer.Kürzel != "?")
+                            Console.WriteLine("Untis2Exchange Fehlermeldung: Der Lehrer " + lehrer.Kürzel + " hat kein Geschlecht in Untis. Bitte in Untis eintragen.");
 
                         this.Add(lehrer);
                     };
@@ -67,7 +67,6 @@ WHERE (((SCHOOLYEAR_ID)= " + aktSj + ") AND  ((TERM_ID)=" + periodes.Count + ") 
                 catch (Exception ex)
                 {
                     Console.WriteLine(ex.ToString());
-                    throw new Exception(ex.ToString());
                 }
                 finally
                 {

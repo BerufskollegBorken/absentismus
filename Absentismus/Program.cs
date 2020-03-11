@@ -43,7 +43,7 @@ namespace Absentismus
                 Lehrers lehrers = new Lehrers(aktSjUntis, raums, ConnectionStringUntis, periodes);
                 Klasses klasses = new Klasses(aktSjUntis, lehrers, raums, ConnectionStringUntis, periodes);
                 Ordnungsmaßnahmen ordnungsmaßnahmen = new Ordnungsmaßnahmen(aktSjAtlantis, ConnectionStringAtlantis);
-                Schuelers schuelers = new Schuelers(ConnectionStringAtlantis, inputAbwesenheitenCsv, feriens, ordnungsmaßnahmen,klasses,lehrers);
+                Schuelers schuelers = new Schuelers(ConnectionStringAtlantis, inputAbwesenheitenCsv, feriens, ordnungsmaßnahmen, klasses, lehrers);
 
                 schuelers.RenderFehlzeiten(klasses, aktSjAtlantis, ConnectionStringAtlantis, sj, feriens);
                 

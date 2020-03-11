@@ -47,47 +47,45 @@ WHERE vorgang_schuljahr = '" + aktSj[0] + "/" + aktSj[1] + "'", connection);
 
                     connection.Open();
                     schuelerAdapter.Fill(dataSet, "DBA.leistungsdaten");
-                    
-
+                  
                     foreach (DataRow theRow in dataSet.Tables["DBA.leistungsdaten"].Rows)
                     {
                         int id = Convert.ToInt32(theRow["ID"]);
-                        if (id == 152115)
-                        {
-                            string aa = "";
-                        }
-                        DateTime gebdat = theRow["Gebdat"].ToString().Length < 3 ? new DateTime() : DateTime.ParseExact(theRow["Gebdat"].ToString(), "dd.MM.yyyy HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture);
                         DateTime austrittsdatum = theRow["Austrittsdatum"].ToString().Length < 3 ? new DateTime() : DateTime.ParseExact(theRow["Austrittsdatum"].ToString(), "dd.MM.yyyy HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture);
-                        string klasse = theRow["Klasse"] == null ? "" : theRow["Klasse"].ToString();
-                        string nachname = theRow["Nachname"] == null ? "" : theRow["Nachname"].ToString();
-                        string vorname = theRow["Vorname"] == null ? "" : theRow["Vorname"].ToString();
 
-                        Ordnungsmaßnahmen om = new Ordnungsmaßnahmen();
-                        om.AddRange((from o in ordnungsmaßnahmen where o.SchuelerId == id select o).ToList());
+                        var xx = (from a in abwesenheiten where a.StudentId == id where (a.Grund == "offen" || a.Grund == "nicht entsch.") select a);
 
-                        Schueler schueler = new Schueler(
-                            id, 
-                            nachname,
-                            vorname,
-                            gebdat, 
-                            klasse,
-                            klasses,
-                            (from a in abwesenheiten where a.StudentId == id select a).ToList(),
-                            feriens,
-                            om,
-                            Convert.ToInt32(aktSj[0])
-                            )
-                            ;
-
-                        // Der Schüler hat kein Austrittsdatum und unentschuldigten Abwesenheiten
-
-                        if (austrittsdatum.Year == 1 && (from a in abwesenheiten where a.StudentId == id where (a.Grund == "offen" || a.Grund == "nicht entsch.") select a).Any())
+                        if (austrittsdatum.Year == 1 && (from a in abwesenheiten where a.StudentId == id where (a.Status == "offen" || a.Status == "nicht entsch.") select a).Any())
                         {
+                            DateTime gebdat = theRow["Gebdat"].ToString().Length < 3 ? new DateTime() : DateTime.ParseExact(theRow["Gebdat"].ToString(), "dd.MM.yyyy HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture);
+                        
+                            string klasse = theRow["Klasse"] == null ? "" : theRow["Klasse"].ToString();
+                            string nachname = theRow["Nachname"] == null ? "" : theRow["Nachname"].ToString();
+                            string vorname = theRow["Vorname"] == null ? "" : theRow["Vorname"].ToString();
+
+                            Ordnungsmaßnahmen om = new Ordnungsmaßnahmen();
+                            om.AddRange((from o in ordnungsmaßnahmen where o.SchuelerId == id select o).ToList());
+
+                            Schueler schueler = new Schueler(
+                                id, 
+                                nachname,
+                                vorname,
+                                gebdat, 
+                                klasse,
+                                klasses,
+                                (from a in abwesenheiten where a.StudentId == id select a).ToList(),
+                                feriens,
+                                om,
+                                Convert.ToInt32(aktSj[0])
+                                )
+                                ;
+                        
                             this.Add(schueler);         
                         }                        
                     }
                 
                     connection.Close();
+                    Console.WriteLine(("Schüler " + ".".PadRight(this.Count / 150, '.')).PadRight(48, '.') + (" " + this.Count).ToString().PadLeft(4), '.');
                 }
             }
             catch (Exception ex)
@@ -97,11 +95,10 @@ WHERE vorgang_schuljahr = '" + aktSj[0] + "/" + aktSj[1] + "'", connection);
         }
         
         internal void RenderFehlzeiten(Klasses klasses, string aktSjAtlantis, string connectionStringAtlantis, int sj, Feriens feriens)
-        {
-            Console.WriteLine("Schüler, auf die §53(4) [20 Stunden in 30 Tagen] zutrifft.");
-            Console.WriteLine("==========================================================");
-
+        {           
             int i = 1;
+
+            Console.WriteLine("Render Fehlzeiten ...");
 
             foreach (var klasse in klasses)
             {
@@ -119,7 +116,6 @@ WHERE vorgang_schuljahr = '" + aktSj[0] + "/" + aktSj[1] + "'", connection);
                                               where s.Abwesenheiten.Count > 0
                                               select s).ToList())
                     {
-
                         schueler.GetAdresse(aktSjAtlantis, connectionStringAtlantis);
 
                         sch.Add(schueler);
@@ -132,13 +128,19 @@ WHERE vorgang_schuljahr = '" + aktSj[0] + "/" + aktSj[1] + "'", connection);
 
                         meldung += "<tr><td>" + i + ".</td><td>" + schueler.Nachname + ", " + schueler.Vorname + ", " + schueler.Gebdat.ToShortDateString() + ", " + schueler.Klasse.NameUntis + "</td><td>" + (schueler.IstVolljährig ? "ja" : "nein") + "</td><td>" + (schueler.IstSchulpflichtig ? "ja" : "nein") + "</td><td>" + schueler.FehltUnunterbrochenUnentschuldigtSeitTagen + "</td><td>" + e1 + "</td><td>" + m1 + "</br>" +  m2 + "</td><td>" + bußgeldverfahren + "</td><td>" + om + "</td><td>" + (from a in schueler.AbwesenheitenSeitLetzterMaßnahme select a.Fehlstunden).Sum() + "</td></tr>";
                         i++;
+                        
+                        // Es wird ein Dokument erzeugt, wenn
+                        // Die vorherige Mahnung ...
 
-                        //schueler.RenderOrdnungsmaßnahmen();
-
-                        //schueler.RenderUnentschuldigteFehlstunden();
 
                         fileNames.Add(schueler.CreateWordDocument(sj));
                     }
+                }
+                catch (System.IO.IOException)
+                {
+                    Console.WriteLine("Die Datei existiert bereits. Bitte zuerst löschen.");
+                    Console.ReadKey();
+                    Environment.Exit(0);
                 }
                 catch (Exception ex)
                 {

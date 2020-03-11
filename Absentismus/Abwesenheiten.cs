@@ -18,9 +18,7 @@ namespace Absentismus
             using (StreamReader reader = new StreamReader(inputAbwesenheitenCsv))
             {
                 string überschrift = reader.ReadLine();
-
-                Console.Write("Abwesenheiten aus Webuntis ".PadRight(70, '.'));
-
+                
                 while (true)
                 {
                     string line = reader.ReadLine();
@@ -44,7 +42,7 @@ namespace Absentismus
                         break;
                     }
                 }
-                Console.WriteLine((" " + this.Count.ToString()).PadLeft(30, '.'));
+                Console.WriteLine(("Abwesenheiten " + ".".PadRight(this.Count / 150, '.')).PadRight(48, '.') + (" " + this.Count).ToString().PadLeft(4), '.');
             }
         }
         

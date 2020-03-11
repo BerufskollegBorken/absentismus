@@ -156,7 +156,9 @@ namespace Absentismus
 
             if (x != null)
             {
-                return x.Datum.ToShortDateString() + "(" + x.FehlstundenBisJetztOderVorDieserMaßnahme + ")";
+                var z = (from aaa in x.FehlstundenBisJetztOderVorDieserMaßnahme select aaa.Fehlstunden).Sum();
+
+                return x.Datum.ToShortDateString() + "(" + z + ")";
             }
             return "";
         }
@@ -233,65 +235,40 @@ WHERE ID = " + Id + " AND hauptadresse_jn = 'j'", connection);
 
         public string CreateWordDocument(int sj)
         {
-            // Wenn keine OM bisher existirt, dann wird zuerst gemahnt.
+            // Wenn keine OM bisher existiert, dann wird zuerst gemahnt.
 
             if (this.Ordnungsmaßnahmen.Count() == 0)
             {
-                return CreateMahnung();
+                return CreateBescheid(
+                    "Schriftliche Mahnung.docx", 
+                    @"c:\\users\\bm\\Desktop\\" + DateTime.Now.ToString("yyyyMMdd") + "-" + Nachname + "-" + Vorname + "-Mahnung" + ".docx"
+                    );
             }
 
             // Wenn eine Mahnung aus dem aktuelle SJ existiert
 
             if ((from o in this.Ordnungsmaßnahmen where o.Datum > new DateTime(sj,8,1) where  o.Kürzel.StartsWith("M") select o).Any())
             {
-
                 if (this.IstSchulpflichtig)
                 {
-                    return CreateBußgeldbescheid();
+                    return CreateBescheid(
+                        "Schriftliche Mahnung.docx",
+                        @"c:\\users\\bm\\Desktop\\" + DateTime.Now.ToString("yyyyMMdd") + "-" + Nachname + "-" + Vorname + "-Mahnung" + ".docx"
+                        );
                 }
                 else
                 {
-                    return CreateOrdnungsmaßnahme();
+                    return CreateBescheid(
+                        "Einladung OM.docx", 
+                        @"c:\\users\\bm\\Desktop\\" + DateTime.Now.ToString("yyyyMMdd") + "-" + Nachname + "-" + Vorname + "-Ordnungsmaßnahme" + ".docx"
+                        );
                 }
             }
             return "";
         }
-
-        private string CreateOrdnungsmaßnahme()
+        
+        private string CreateBescheid(string origFileName, string fileName)
         {
-            object origFileName = "Einladung OM.docx";
-            string fileName = @"c:\\users\\bm\\Desktop\\" + DateTime.Now.ToString("yyyyMMdd") + "-" + Nachname + "-" + Vorname + "-Ordnungsmaßnahme" + ".docx";
-
-            System.IO.File.Copy(origFileName.ToString(), fileName.ToString());
-
-            Application wordApp = new Microsoft.Office.Interop.Word.Application { Visible = true };
-            Document aDoc = wordApp.Documents.Open(fileName, ReadOnly: false, Visible: true);
-            aDoc.Activate();
-
-            FindAndReplace(wordApp, "<vorname>", Vorname);
-            FindAndReplace(wordApp, "<nachname>", Nachname);
-            FindAndReplace(wordApp, "<plz>", Adresse.Plz);
-            FindAndReplace(wordApp, "<straße>", Adresse.Strasse);
-            FindAndReplace(wordApp, "<ort>", Adresse.Ort);
-            FindAndReplace(wordApp, "<klasse>", Klasse.NameUntis);
-            FindAndReplace(wordApp, "<heute>", DateTime.Now.ToShortDateString());
-            FindAndReplace(wordApp, "<klassenleitung>", Klasse.Klassenleitungen[0].Nachname + ", " + Klasse.Klassenleitungen[0].Vorname);
-            FindAndReplace(wordApp, "<mahnung>", (from o in this.Ordnungsmaßnahmen.OrderBy(x=>x.Datum) where o.Kürzel.StartsWith("M") select o.Datum.ToShortDateString()).LastOrDefault());
-
-            aDoc.Save();
-            aDoc.Close();
-            System.Runtime.InteropServices.Marshal.ReleaseComObject(aDoc);
-            aDoc = null;
-            GC.Collect();
-
-            return fileName;
-        }
-
-        private string CreateBußgeldbescheid()
-        {
-            object origFileName = "Schriftliche Mahnung.docx";
-            string fileName = @"c:\\users\\bm\\Desktop\\" + DateTime.Now.ToString("yyyyMMdd") + "-" + Nachname + "-" + Vorname + "-Mahnung" + ".docx";
-
             System.IO.File.Copy(origFileName.ToString(), fileName.ToString());
 
             Application wordApp = new Microsoft.Office.Interop.Word.Application { Visible = true };
@@ -306,17 +283,13 @@ WHERE ID = " + Id + " AND hauptadresse_jn = 'j'", connection);
             FindAndReplace(wordApp, "<klasse>", Klasse.NameUntis);
             FindAndReplace(wordApp, "<heute>", DateTime.Now.ToShortDateString());
 
-            string fehltage = "";
-
-            int i = 1;
-
-            foreach (var un in UnentschuldigteFehlstundenInLetzten30Tagen)
+            for (int i = 0; i < AbwesenheitenSeitLetzterMaßnahme.Count; i++)
             {
-                fehltage += un.Datum.ToShortDateString() + " (" + un.Fehlstunden + "),";
-                i++;
+                string fehltage = AbwesenheitenSeitLetzterMaßnahme[i].Datum.ToShortDateString() + " (" + AbwesenheitenSeitLetzterMaßnahme[i].Fehlstunden + "), " + "<fehltage>";
+                FindAndReplace(wordApp, "<fehltage>", fehltage.TrimEnd(','));
             }
 
-            FindAndReplace(wordApp, "<fehltage>", fehltage.TrimEnd(','));
+            FindAndReplace(wordApp, "<fehltage>", "");
 
             aDoc.Save();
             aDoc.Close();
@@ -326,47 +299,7 @@ WHERE ID = " + Id + " AND hauptadresse_jn = 'j'", connection);
 
             return fileName;
         }
-
-        private string CreateMahnung()
-        {
-            object origFileName = "Schriftliche Mahnung.docx";
-            string fileName = @"c:\\users\\bm\\Desktop\\" + DateTime.Now.ToString("yyyyMMdd") + "-" + Nachname + "-" + Vorname + "-Mahnung" + ".docx";
-
-            System.IO.File.Copy(origFileName.ToString(), fileName.ToString());
-
-            Application wordApp = new Microsoft.Office.Interop.Word.Application { Visible = true };
-            Document aDoc = wordApp.Documents.Open(fileName, ReadOnly: false, Visible: true);
-            aDoc.Activate();
-
-            FindAndReplace(wordApp, "<vorname>", Vorname);
-            FindAndReplace(wordApp, "<nachname>", Nachname);
-            FindAndReplace(wordApp, "<plz>", Adresse.Plz);
-            FindAndReplace(wordApp, "<straße>", Adresse.Strasse);
-            FindAndReplace(wordApp, "<ort>", Adresse.Ort);
-            FindAndReplace(wordApp, "<klasse>", Klasse.NameUntis);
-            FindAndReplace(wordApp, "<heute>", DateTime.Now.ToShortDateString());
-
-            string fehltage = "";
-
-            int i = 1;
-
-            foreach (var un in UnentschuldigteFehlstundenInLetzten30Tagen)
-            {
-                fehltage += un.Datum.ToShortDateString() + " (" + un.Fehlstunden + "),";
-                i++;
-            }
-
-            FindAndReplace(wordApp, "<fehltage>", fehltage.TrimEnd(','));
-
-            aDoc.Save();
-            aDoc.Close();
-            System.Runtime.InteropServices.Marshal.ReleaseComObject(aDoc);
-            aDoc = null;
-            GC.Collect();
-
-            return fileName;
-        }
-
+        
         private static void FindAndReplace(Application doc, object findText, object replaceWithText)
         {
             //options
