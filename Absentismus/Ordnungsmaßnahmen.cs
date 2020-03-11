@@ -29,8 +29,7 @@ WHERE vorgang_schuljahr = '" + aktSjAtlantis + "' AND info_gruppe = 'STRAF' AND 
 
                     connection.Open();
                     schuelerAdapter.Fill(dataSet, "DBA.leistungsdaten");
-
-
+                    
                     foreach (DataRow theRow in dataSet.Tables["DBA.leistungsdaten"].Rows)
                     {
                         int schuelerId = Convert.ToInt32(theRow["ID"]);

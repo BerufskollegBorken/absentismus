@@ -281,6 +281,8 @@ WHERE ID = " + Id + " AND hauptadresse_jn = 'j'", connection);
             FindAndReplace(wordApp, "<straße>", Adresse.Strasse);
             FindAndReplace(wordApp, "<ort>", Adresse.Ort);
             FindAndReplace(wordApp, "<klasse>", Klasse.NameUntis);
+            FindAndReplace(wordApp, "<klassenleitung>", Klasse.Klassenleitungen[0].Anrede + " " + Klasse.Klassenleitungen[0].Nachname);
+            FindAndReplace(wordApp, "<mahnung>", RenderBisherigeMaßnahmen());
             FindAndReplace(wordApp, "<heute>", DateTime.Now.ToShortDateString());
 
             for (int i = 0; i < AbwesenheitenSeitLetzterMaßnahme.Count; i++)
@@ -289,7 +291,7 @@ WHERE ID = " + Id + " AND hauptadresse_jn = 'j'", connection);
                 FindAndReplace(wordApp, "<fehltage>", fehltage.TrimEnd(','));
             }
 
-            FindAndReplace(wordApp, "<fehltage>", "");
+            FindAndReplace(wordApp, ", <fehltage>", "");
 
             aDoc.Save();
             aDoc.Close();
@@ -299,7 +301,18 @@ WHERE ID = " + Id + " AND hauptadresse_jn = 'j'", connection);
 
             return fileName;
         }
-        
+
+        private string RenderBisherigeMaßnahmen()
+        {
+            string x = "";
+
+            foreach (var maßnahme in this.Ordnungsmaßnahmen)
+            {
+                x += maßnahme.Beschreibung + " am " + maßnahme.Datum.ToShortDateString() + ", "; 
+            }
+            return x;
+        }
+
         private static void FindAndReplace(Application doc, object findText, object replaceWithText)
         {
             //options
