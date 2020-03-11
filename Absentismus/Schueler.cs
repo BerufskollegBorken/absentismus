@@ -20,9 +20,10 @@ namespace Absentismus
         public int FehltUnentschuldigtSeitTagen { get; internal set; }
         public bool IstVolljährig { get; private set; }
         public List<Ordnungsmaßnahme> Ordnungsmaßnahmen { get; private set; }
-        public Adresse Adresse { get; private set; }        
+        public Adresse Adresse { get; private set; }
+        public Int32 FehltUnentschuldigteStundenSeitLetzterMaßnahme { get; private set; }
 
-        public Schueler(int id, string nachname, string vorname, DateTime gebdat, Klasse klasse, List<Abwesenheit> abwesenheiten, Feriens feriens, List<Ordnungsmaßnahme> ordnungsmaßnahmen)
+        public Schueler(int id, string nachname, string vorname, DateTime gebdat, Klasse klasse, List<Abwesenheit> abwesenheiten, Feriens feriens, Ordnungsmaßnahmen om, int aktSj)
         {
             Id = id;
             Nachname = nachname;
@@ -31,10 +32,17 @@ namespace Absentismus
             Klasse = klasse;
             Abwesenheiten = abwesenheiten;
             IstSchulpflichtig = GetSchulpflicht();
-            IstVolljährig = GetVolljährigkeit();
-            UnentschuldigteFehlstundenInLetzten30Tagen = GetUnenrschuldigteFehlstundenInLetzten30Tagen();
-            FehltUnentschuldigtSeitTagen = GetUnnterbrocheneFehltageSeiteTagen(feriens);
-            Ordnungsmaßnahmen = ordnungsmaßnahmen;            
+            IstVolljährig = GetVolljährigkeit();            
+            FehltUnentschuldigtSeitTagen = GetUnunterbrocheneFehltageSeitTagen(feriens);
+            Ordnungsmaßnahmen = om.GetFehlstundenVorDieserMaßnahme(Abwesenheiten, aktSj);
+            FehltUnentschuldigteStundenSeitLetzterMaßnahme = GetUnentschuldigteFehlstundenSeitLetzterMaßnahme();
+        }
+
+        private int GetUnentschuldigteFehlstundenSeitLetzterMaßnahme()
+        {
+            DateTime datumLletzteMaßnahme = (from o in Ordnungsmaßnahmen select o.Datum).LastOrDefault();
+
+            return (from a in Abwesenheiten where a.Datum > datumLletzteMaßnahme select a.Fehlstunden).Sum();
         }
 
         private bool GetVolljährigkeit()
@@ -46,7 +54,7 @@ namespace Absentismus
             return false;
         }
 
-        private int GetUnnterbrocheneFehltageSeiteTagen(Feriens feriens)
+        private int GetUnunterbrocheneFehltageSeitTagen(Feriens feriens)
         {
             int fehltUnentschuldigtSeitTagen = 0;
 
@@ -351,9 +359,17 @@ WHERE ID = " + Id + " AND hauptadresse_jn = 'j'", connection);
             object replace = 2;
             object wrap = 1;
             //execute find and replace
-            doc.Selection.Find.Execute(ref findText, ref matchCase, ref matchWholeWord,
+            try
+            {
+                doc.Selection.Find.Execute(ref findText, ref matchCase, ref matchWholeWord,
                 ref matchWildCards, ref matchSoundsLike, ref matchAllWordForms, ref forward, ref wrap, ref format, ref replaceWithText, ref replace,
                 ref matchKashida, ref matchDiacritics, ref matchAlefHamza, ref matchControl);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine(ex);
+                Console.ReadKey();
+            }            
         }
 
         internal string GetM1Datum()
