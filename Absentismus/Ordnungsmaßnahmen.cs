@@ -2,13 +2,15 @@
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Odbc;
+using System.Linq;
 
 namespace Absentismus
 {
     public class Ordnungsmaßnahmen : List<Ordnungsmaßnahme>
     {
-        private string aktSjAtlantis;
-        private string connectionStringAtlantis;
+        public Ordnungsmaßnahmen()
+        {
+        }
 
         public Ordnungsmaßnahmen(string aktSjAtlantis, string connectionStringAtlantis)
         {
@@ -50,11 +52,30 @@ WHERE vorgang_schuljahr = '" + aktSjAtlantis + "' AND info_gruppe = 'STRAF' AND 
                     connection.Close();
                 }
             }
-            catch (System.Exception)
+            catch (Exception ex)
             {
-
-                throw;
+                Console.WriteLine(ex.ToString());
+                Console.ReadKey();
             }
+        }
+
+        internal List<Ordnungsmaßnahme> GetFehlstundenVorDieserMaßnahme(List<Abwesenheit> abwesenheiten, int aktSj)
+        {
+            DateTime omDavor = new DateTime(aktSj, 8, 1);
+            DateTime omDanach = DateTime.Now;
+            
+            for (int i = 0; i < this.Count; i++)
+            {
+                omDavor = i == 0 ? omDavor : this[i - 1].Datum;
+                omDanach = i == this.Count ? DateTime.Now : this[i].Datum;
+
+                this[i].FehlstundenBisJetztOderVorDieserMaßnahme.AddRange(
+                    (from a in abwesenheiten
+                     where omDavor < a.Datum
+                     where a.Datum < omDanach
+                     select a).ToList());               
+            }
+            return this;
         }
     }
 }

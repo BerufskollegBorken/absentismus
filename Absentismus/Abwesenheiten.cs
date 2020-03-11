@@ -9,6 +9,10 @@ namespace Absentismus
 {
     public class Abwesenheiten : List<Abwesenheit>
     {
+        public Abwesenheiten()
+        {
+        }
+
         public Abwesenheiten(string inputAbwesenheitenCsv)
         {            
             using (StreamReader reader = new StreamReader(inputAbwesenheitenCsv))

@@ -17,32 +17,40 @@ namespace Absentismus
         public List<Abwesenheit> UnentschuldigteFehlstundenInLetzten30Tagen { get; private set; }
         public string Nachname { get; private set; }
         public string Vorname { get; private set; }
-        public int FehltUnentschuldigtSeitTagen { get; internal set; }
+        public int FehltUnunterbrochenUnentschuldigtSeitTagen { get; internal set; }
         public bool IstVolljährig { get; private set; }
         public List<Ordnungsmaßnahme> Ordnungsmaßnahmen { get; private set; }
         public Adresse Adresse { get; private set; }
-        public Int32 FehltUnentschuldigteStundenSeitLetzterMaßnahme { get; private set; }
+        public Abwesenheiten AbwesenheitenSeitLetzterMaßnahme { get; private set; }
 
-        public Schueler(int id, string nachname, string vorname, DateTime gebdat, Klasse klasse, List<Abwesenheit> abwesenheiten, Feriens feriens, Ordnungsmaßnahmen om, int aktSj)
+        public Schueler(int id, string nachname, string vorname, DateTime gebdat, string klasse, Klasses klasses, List<Abwesenheit> abwesenheiten, Feriens feriens, Ordnungsmaßnahmen om, int aktSj)
         {
             Id = id;
             Nachname = nachname;
             Vorname = vorname;
             Gebdat = gebdat;
-            Klasse = klasse;
+            Klasse = GetKlasse(klasses, klasse);
             Abwesenheiten = abwesenheiten;
             IstSchulpflichtig = GetSchulpflicht();
             IstVolljährig = GetVolljährigkeit();            
-            FehltUnentschuldigtSeitTagen = GetUnunterbrocheneFehltageSeitTagen(feriens);
+            FehltUnunterbrochenUnentschuldigtSeitTagen = GetUnunterbrocheneFehltageSeitTagen(feriens);
             Ordnungsmaßnahmen = om.GetFehlstundenVorDieserMaßnahme(Abwesenheiten, aktSj);
-            FehltUnentschuldigteStundenSeitLetzterMaßnahme = GetUnentschuldigteFehlstundenSeitLetzterMaßnahme();
+            AbwesenheitenSeitLetzterMaßnahme = GetUnentschuldigteAbwesenheitenSeitLetzterMaßnahme(aktSj);
         }
 
-        private int GetUnentschuldigteFehlstundenSeitLetzterMaßnahme()
+        private Klasse GetKlasse(Klasses klasses, string klasse)
         {
-            DateTime datumLletzteMaßnahme = (from o in Ordnungsmaßnahmen select o.Datum).LastOrDefault();
+            return (from k in klasses where k.NameUntis == klasse select k).FirstOrDefault();
+        }
 
-            return (from a in Abwesenheiten where a.Datum > datumLletzteMaßnahme select a.Fehlstunden).Sum();
+        private Abwesenheiten GetUnentschuldigteAbwesenheitenSeitLetzterMaßnahme(int aktSj)
+        {
+            DateTime datumLletzteMaßnahme = Ordnungsmaßnahmen.Count == 0 ? new DateTime(aktSj,8,1) : (from o in Ordnungsmaßnahmen select o.Datum).LastOrDefault();
+
+            Abwesenheiten ab = new Abwesenheiten();
+
+            ab.AddRange((from a in Abwesenheiten where a.Datum > datumLletzteMaßnahme select a).ToList()); 
+            return ab;
         }
 
         private bool GetVolljährigkeit()
@@ -56,31 +64,39 @@ namespace Absentismus
 
         private int GetUnunterbrocheneFehltageSeitTagen(Feriens feriens)
         {
-            int fehltUnentschuldigtSeitTagen = 0;
-
-            for (int t = -1; t > -28; t--)
+            try
             {
-                DateTime tag = DateTime.Now.Date.AddDays(t);
-                
-                if (!(tag.DayOfWeek == DayOfWeek.Sunday))
+                int fehltUnentschuldigtSeitTagen = 0;
+
+                for (int t = -1; t > -28; t--)
                 {
-                    if (!(tag.DayOfWeek == DayOfWeek.Saturday))
+                    DateTime tag = DateTime.Now.Date.AddDays(t);
+
+                    if (!(tag.DayOfWeek == DayOfWeek.Sunday))
                     {
-                        if (!feriens.IstFerienTag(tag))
+                        if (!(tag.DayOfWeek == DayOfWeek.Saturday))
                         {
-                            if ((from a in this.Abwesenheiten where a.Datum.Date == tag.Date select a).Any())
+                            if (!feriens.IstFerienTag(tag))
                             {
-                                fehltUnentschuldigtSeitTagen++;
-                            }
-                            else
-                            {
-                                return fehltUnentschuldigtSeitTagen;
+                                if ((from a in this.Abwesenheiten where a.Datum.Date == tag.Date select a).Any())
+                                {
+                                    fehltUnentschuldigtSeitTagen++;
+                                }
+                                else
+                                {
+                                    return fehltUnentschuldigtSeitTagen;
+                                }
                             }
                         }
-                    }                    
+                    }
                 }
+                return fehltUnentschuldigtSeitTagen;
             }
-            return fehltUnentschuldigtSeitTagen;
+            catch (Exception)
+            {
+
+                throw;
+            }            
         }
 
         private List<Abwesenheit> GetUnenrschuldigteFehlstundenInLetzten30Tagen()
@@ -134,6 +150,17 @@ namespace Absentismus
             return true;
         }
 
+        internal string Render(string m)
+        {
+            var x = (from o in Ordnungsmaßnahmen where o.Kürzel == m select o).FirstOrDefault();
+
+            if (x != null)
+            {
+                return x.Datum.ToShortDateString() + "(" + x.FehlstundenBisJetztOderVorDieserMaßnahme + ")";
+            }
+            return "";
+        }
+        
         internal void RenderOrdnungsmaßnahmen()
         {
             foreach (var om in this.Ordnungsmaßnahmen)

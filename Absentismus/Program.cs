@@ -45,7 +45,7 @@ namespace Absentismus
                 Ordnungsmaßnahmen ordnungsmaßnahmen = new Ordnungsmaßnahmen(aktSjAtlantis, ConnectionStringAtlantis);
                 Schuelers schuelers = new Schuelers(ConnectionStringAtlantis, inputAbwesenheitenCsv, feriens, ordnungsmaßnahmen,klasses,lehrers);
 
-                schuelers.GetSchulerMit20FehlstundenIn30Tagen(klasses, aktSjAtlantis, ConnectionStringAtlantis, sj, feriens);
+                schuelers.RenderFehlzeiten(klasses, aktSjAtlantis, ConnectionStringAtlantis, sj, feriens);
                 
                 Console.ReadKey();
             }

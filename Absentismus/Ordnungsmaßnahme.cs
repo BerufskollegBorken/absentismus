@@ -8,6 +8,7 @@ namespace Absentismus
         public string Beschreibung { get; private set; }
         public DateTime Datum { get; private set; }
         public string Kürzel { get; private set; }
+        public Abwesenheiten FehlstundenBisJetztOderVorDieserMaßnahme { get; internal set; }
 
         public Ordnungsmaßnahme(int schuelerId, string beschreibung, DateTime datum, string kürzel)
         {
@@ -15,6 +16,7 @@ namespace Absentismus
             Beschreibung = beschreibung;
             Datum = datum;
             Kürzel = kürzel;
+            FehlstundenBisJetztOderVorDieserMaßnahme = new Abwesenheiten();
         }
     }
 }
