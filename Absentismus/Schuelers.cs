@@ -47,7 +47,7 @@ WHERE vorgang_schuljahr = '" + aktSj[0] + "/" + aktSj[1] + "'", connection);
 
                     connection.Open();
                     schuelerAdapter.Fill(dataSet, "DBA.leistungsdaten");
-                  
+
                     foreach (DataRow theRow in dataSet.Tables["DBA.leistungsdaten"].Rows)
                     {
                         int id = Convert.ToInt32(theRow["ID"]);
@@ -58,7 +58,7 @@ WHERE vorgang_schuljahr = '" + aktSj[0] + "/" + aktSj[1] + "'", connection);
                         if (austrittsdatum.Year == 1 && (from a in abwesenheiten where a.StudentId == id where (a.Status == "offen" || a.Status == "nicht entsch.") select a).Any())
                         {
                             DateTime gebdat = theRow["Gebdat"].ToString().Length < 3 ? new DateTime() : DateTime.ParseExact(theRow["Gebdat"].ToString(), "dd.MM.yyyy HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture);
-                        
+
                             string klasse = theRow["Klasse"] == null ? "" : theRow["Klasse"].ToString();
                             string nachname = theRow["Nachname"] == null ? "" : theRow["Nachname"].ToString();
                             string vorname = theRow["Vorname"] == null ? "" : theRow["Vorname"].ToString();
@@ -67,10 +67,10 @@ WHERE vorgang_schuljahr = '" + aktSj[0] + "/" + aktSj[1] + "'", connection);
                             om.AddRange((from o in ordnungsmaßnahmen where o.SchuelerId == id select o).ToList());
 
                             Schueler schueler = new Schueler(
-                                id, 
+                                id,
                                 nachname,
                                 vorname,
-                                gebdat, 
+                                gebdat,
                                 klasse,
                                 klasses,
                                 (from a in abwesenheiten where a.StudentId == id select a).ToList(),
@@ -79,11 +79,11 @@ WHERE vorgang_schuljahr = '" + aktSj[0] + "/" + aktSj[1] + "'", connection);
                                 Convert.ToInt32(aktSj[0])
                                 )
                                 ;
-                        
-                            this.Add(schueler);         
-                        }                        
+
+                            this.Add(schueler);
+                        }
                     }
-                
+
                     connection.Close();
                     Console.WriteLine(("Schüler " + ".".PadRight(this.Count / 150, '.')).PadRight(48, '.') + (" " + this.Count).ToString().PadLeft(4), '.');
                 }
@@ -91,13 +91,11 @@ WHERE vorgang_schuljahr = '" + aktSj[0] + "/" + aktSj[1] + "'", connection);
             catch (Exception ex)
             {
                 throw ex;
-            }            
+            }
         }
-        
-        internal void RenderFehlzeiten(Klasses klasses, string aktSjAtlantis, string connectionStringAtlantis, int sj, Feriens feriens)
-        {           
-            int i = 1;
 
+        internal void RenderFehlzeiten(Klasses klasses, string aktSjAtlantis, string connectionStringAtlantis, int sj, Feriens feriens)
+        {
             Console.WriteLine("Render Fehlzeiten ...");
 
             foreach (var klasse in klasses)
@@ -108,8 +106,52 @@ WHERE vorgang_schuljahr = '" + aktSj[0] + "/" + aktSj[1] + "'", connection);
 
                 Schuelers sch = new Schuelers();
 
+
+                Microsoft.Office.Interop.Excel.Application oXL;
+                Microsoft.Office.Interop.Excel._Workbook oWB;
+                Microsoft.Office.Interop.Excel._Worksheet oSheet;
+                Microsoft.Office.Interop.Excel.Range oRng;
+                object misvalue = System.Reflection.Missing.Value;
+
                 try
                 {
+                    //Start Excel and get Application object.
+                    oXL = new Microsoft.Office.Interop.Excel.Application();
+                    oXL.Visible = true;
+
+                    //Get a new workbook.
+                    oWB = (Microsoft.Office.Interop.Excel._Workbook)(oXL.Workbooks.Add(""));
+                    oSheet = (Microsoft.Office.Interop.Excel._Worksheet)oWB.ActiveSheet;
+
+                    //Add table headers going cell by cell.
+                    oSheet.Cells[1, 1] = "Klasse";
+                    oSheet.Cells[1, 2] = "Nachname";
+                    oSheet.Cells[1, 3] = "Vorname";
+                    oSheet.Cells[1, 4] = "Gebdatum";
+                    oSheet.Cells[1, 5] = "Volljährig?";
+                    oSheet.Cells[1, 6] = "Schulpflichtig?";
+                    oSheet.Cells[1, 7] = "Fehlt ununterbrochen unentschuldigt seit soviel Tagen";
+                    oSheet.Cells[1, 8] = "Ezieherische(s) Gespräch(e) mit der Schulleitung";
+                    oSheet.Cells[1, 9] = "Mahnung(en)";
+                    oSheet.Cells[1, 10] = "Bußgeldverfahren";
+                    oSheet.Cells[1, 11] = "Ordnungsmaßnahme";
+                    oSheet.Cells[1, 12] = "Fehlstunden seit letzter Maßnahme";
+
+                    //AutoFit columns A:D.
+                    oRng = oSheet.get_Range("A1", "H1");
+                    oRng.EntireColumn.AutoFit();
+
+                    oXL.Visible = false;
+                    oXL.UserControl = false;
+                    oWB.SaveAs(Environment.GetFolderPath(Environment.SpecialFolder.Desktop) + "\\Steuerdatei-Absentismus.xlsx", Microsoft.Office.Interop.Excel.XlFileFormat.xlWorkbookDefault, Type.Missing, Type.Missing,
+                        false, false, Microsoft.Office.Interop.Excel.XlSaveAsAccessMode.xlNoChange,
+                        Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing);
+
+                    oWB.Close();
+                    oXL.Quit();
+
+                    int zeile = 2;
+
                     foreach (var schueler in (from s in this
                                               where s.Klasse != null
                                               where s.Klasse.NameUntis == klasse.NameUntis
@@ -126,14 +168,22 @@ WHERE vorgang_schuljahr = '" + aktSj[0] + "/" + aktSj[1] + "'", connection);
                         string bußgeldverfahren = schueler.Render("B");
                         string om = schueler.Render("OM");
 
-                        meldung += "<tr><td>" + i + ".</td><td>" + schueler.Nachname + ", " + schueler.Vorname + ", " + schueler.Gebdat.ToShortDateString() + ", " + schueler.Klasse.NameUntis + "</td><td>" + (schueler.IstVolljährig ? "ja" : "nein") + "</td><td>" + (schueler.IstSchulpflichtig ? "ja" : "nein") + "</td><td>" + schueler.FehltUnunterbrochenUnentschuldigtSeitTagen + "</td><td>" + e1 + "</td><td>" + m1 + "</br>" +  m2 + "</td><td>" + bußgeldverfahren + "</td><td>" + om + "</td><td>" + (from a in schueler.AbwesenheitenSeitLetzterMaßnahme select a.Fehlstunden).Sum() + "</td></tr>";
-                        i++;
-                        
-                        // Es wird ein Dokument erzeugt, wenn
-                        // Die vorherige Mahnung ...
+                        int i = zeile - 1;
+                        meldung += "<tr><td>" + i + ".</td><td>" + schueler.Nachname + ", " + schueler.Vorname + ", " + schueler.Gebdat.ToShortDateString() + ", " + schueler.Klasse.NameUntis + "</td><td>" + (schueler.IstVolljährig ? "ja" : "nein") + "</td><td>" + (schueler.IstSchulpflichtig ? "ja" : "nein") + "</td><td>" + schueler.FehltUnunterbrochenUnentschuldigtSeitTagen + "</td><td>" + e1 + "</td><td>" + m1 + "</br>" + m2 + "</td><td>" + bußgeldverfahren + "</td><td>" + om + "</td><td>" + (from a in schueler.AbwesenheitenSeitLetzterMaßnahme select a.Fehlstunden).Sum() + "</td></tr>";
 
-
-                        fileNames.Add(schueler.CreateWordDocument(sj));
+                        oSheet.Cells[zeile, 1] = schueler.Klasse.NameUntis;
+                        oSheet.Cells[zeile, 2] = schueler.Nachname;
+                        oSheet.Cells[zeile, 3] = schueler.Vorname;
+                        oSheet.Cells[zeile, 4] = schueler.Gebdat.ToShortDateString();
+                        oSheet.Cells[zeile, 5] = (schueler.IstVolljährig ? "ja" : "nein");
+                        oSheet.Cells[zeile, 6] = (schueler.IstSchulpflichtig ? "ja" : "nein");
+                        oSheet.Cells[zeile, 7] = schueler.FehltUnunterbrochenUnentschuldigtSeitTagen;
+                        oSheet.Cells[zeile, 8] = e1;
+                        oSheet.Cells[zeile, 9] = m1 + m2;
+                        oSheet.Cells[zeile, 10] = bußgeldverfahren;
+                        oSheet.Cells[zeile, 11] = om;
+                        oSheet.Cells[zeile, 12] = (from a in schueler.AbwesenheitenSeitLetzterMaßnahme select a.Fehlstunden).Sum();
+                        zeile++;
                     }
                 }
                 catch (System.IO.IOException)
@@ -146,13 +196,13 @@ WHERE vorgang_schuljahr = '" + aktSj[0] + "/" + aktSj[1] + "'", connection);
                 {
                     Console.WriteLine(ex.ToString());
                 }
-                
+
                 meldung += "</table>";
                 meldung += "*) SchulG §53 (4):  Die Entlassung einer Schülerin oder eines Schülers, die oder der nicht mehr schulpflichtig ist, kann ohne vorherige Androhung erfolgen, wenn die Schülerin oder der Schüler innerhalb eines Zeitraumes von 30 Tagen insgesamt 20 Unterrichtsstunden unentschuldigt versäumt hat</br>";
                 meldung += "**) SchulG §47 (1):  Das Schulverhältnis endet, wenn die nicht mehr schulpflichtige Schülerin oder der nicht mehr schulpflichtige Schüler trotz schriftlicher Erinnerung ununterbrochen 20 Unterrichtstage unentschuldigt fehlt.";
                 if (meldung.Contains("1."))
-                {   
-                    var body = @"Hallo" + 
+                {
+                    var body = @"Hallo" +
 "</br>" +
 "Sie erhaltenen diese Mail in Ihrer Eigenschaft als Klassenleitung der Klasse " + klasse.NameUntis + "." +
 "</br>" +
@@ -160,19 +210,19 @@ WHERE vorgang_schuljahr = '" + aktSj[0] + "/" + aktSj[1] + "'", connection);
 "</br>"
 + meldung +
 "</br>Ihre Aufgabe als Klassenleitung ist Überwachung der Schulpflicht. Zu Ihrer Unterstützung hängen dieser Mail bereits alle Dokumente an.</br>" +
-"Bitte veranlassen Sie weitere Schritte" 
+"Bitte veranlassen Sie weitere Schritte"
 ;
-                    
+
                     Global.MailSenden(
-                        klasse, 
-                        "Schulpflichtüberwachung in Klasse " + klasse.NameUntis, 
+                        klasse,
+                        "Schulpflichtüberwachung in Klasse " + klasse.NameUntis,
                         body, fileNames);
 
                     RemoveFiles(fileNames);
-                }                
+                }
             }
         }
-                
+
         private void RemoveFiles(List<string> fileNames)
         {
             foreach (string f in fileNames)
@@ -187,7 +237,7 @@ WHERE vorgang_schuljahr = '" + aktSj[0] + "/" + aktSj[1] + "'", connection);
             Console.WriteLine("===============================================================================");
 
             int i = 1;
-            
+
             foreach (var schueler in this)
             {
                 if (schueler.FehltUnunterbrochenUnentschuldigtSeitTagen >= 20)

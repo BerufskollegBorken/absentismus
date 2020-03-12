@@ -233,8 +233,27 @@ WHERE ID = " + Id + " AND hauptadresse_jn = 'j'", connection);
             return "";
         }
 
-        public string CreateWordDocument(int sj)
+        public string CreateSteuerdatei(int sj)
         {
+            Microsoft.Office.Interop.Excel.Application excel;
+            Microsoft.Office.Interop.Excel.Workbook worKbooK;
+            Microsoft.Office.Interop.Excel.Worksheet worKsheeT;
+            Microsoft.Office.Interop.Excel.Range celLrangE;
+
+            excel = new Microsoft.Office.Interop.Excel.Application();
+            excel.Visible = false;
+            excel.DisplayAlerts = false;
+            worKbooK = excel.Workbooks.Add(Type.Missing);
+            
+            worKsheeT = (Microsoft.Office.Interop.Excel.Worksheet)worKbooK.ActiveSheet;
+            worKsheeT.Name = "SteuerdateiFehlzeiten";
+
+            worKsheeT.Cells[1, 1] = "Nachname";
+            
+            int rowcount = 2;
+
+            string maßnahme = GetUnentschuldigteAbwesenheitenSeitLetzterMaßnahme()
+
             // Wenn keine OM bisher existiert, dann wird zuerst gemahnt.
 
             if (this.Ordnungsmaßnahmen.Count() == 0)
@@ -269,6 +288,20 @@ WHERE ID = " + Id + " AND hauptadresse_jn = 'j'", connection);
         
         private string CreateBescheid(string origFileName, string fileName)
         {
+
+
+
+
+
+
+
+
+
+
+
+
+
+
             System.IO.File.Copy(origFileName.ToString(), fileName.ToString());
 
             Application wordApp = new Microsoft.Office.Interop.Word.Application { Visible = true };
