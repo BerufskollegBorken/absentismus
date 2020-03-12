@@ -136,6 +136,7 @@ WHERE vorgang_schuljahr = '" + aktSj[0] + "/" + aktSj[1] + "'", connection);
                     oSheet.Cells[1, 10] = "Bußgeldverfahren";
                     oSheet.Cells[1, 11] = "Ordnungsmaßnahme";
                     oSheet.Cells[1, 12] = "Fehlstunden seit letzter Maßnahme";
+                    oSheet.Cells[1, 13] = "bisherige Maßnahmen";
 
                     //AutoFit columns A:D.
                     oRng = oSheet.get_Range("A1", "H1");
