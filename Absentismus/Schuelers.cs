@@ -141,16 +141,7 @@ WHERE vorgang_schuljahr = '" + aktSj[0] + "/" + aktSj[1] + "'", connection);
                     //AutoFit columns A:D.
                     oRng = oSheet.get_Range("A1", "H1");
                     oRng.EntireColumn.AutoFit();
-
-                    oXL.Visible = false;
-                    oXL.UserControl = false;
-                    oWB.SaveAs(Environment.GetFolderPath(Environment.SpecialFolder.Desktop) + "\\Steuerdatei-Absentismus.xlsx", Microsoft.Office.Interop.Excel.XlFileFormat.xlWorkbookDefault, Type.Missing, Type.Missing,
-                        false, false, Microsoft.Office.Interop.Excel.XlSaveAsAccessMode.xlNoChange,
-                        Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing);
-
-                    oWB.Close();
-                    oXL.Quit();
-
+                                        
                     int zeile = 2;
 
                     foreach (var schueler in (from s in this
@@ -171,21 +162,18 @@ WHERE vorgang_schuljahr = '" + aktSj[0] + "/" + aktSj[1] + "'", connection);
 
                         int i = zeile - 1;
                         meldung += "<tr><td>" + i + ".</td><td>" + schueler.Nachname + ", " + schueler.Vorname + ", " + schueler.Gebdat.ToShortDateString() + ", " + schueler.Klasse.NameUntis + "</td><td>" + (schueler.IstVolljährig ? "ja" : "nein") + "</td><td>" + (schueler.IstSchulpflichtig ? "ja" : "nein") + "</td><td>" + schueler.FehltUnunterbrochenUnentschuldigtSeitTagen + "</td><td>" + e1 + "</td><td>" + m1 + "</br>" + m2 + "</td><td>" + bußgeldverfahren + "</td><td>" + om + "</td><td>" + (from a in schueler.AbwesenheitenSeitLetzterMaßnahme select a.Fehlstunden).Sum() + "</td></tr>";
-
-                        oSheet.Cells[zeile, 1] = schueler.Klasse.NameUntis;
-                        oSheet.Cells[zeile, 2] = schueler.Nachname;
-                        oSheet.Cells[zeile, 3] = schueler.Vorname;
-                        oSheet.Cells[zeile, 4] = schueler.Gebdat.ToShortDateString();
-                        oSheet.Cells[zeile, 5] = (schueler.IstVolljährig ? "ja" : "nein");
-                        oSheet.Cells[zeile, 6] = (schueler.IstSchulpflichtig ? "ja" : "nein");
-                        oSheet.Cells[zeile, 7] = schueler.FehltUnunterbrochenUnentschuldigtSeitTagen;
-                        oSheet.Cells[zeile, 8] = e1;
-                        oSheet.Cells[zeile, 9] = m1 + m2;
-                        oSheet.Cells[zeile, 10] = bußgeldverfahren;
-                        oSheet.Cells[zeile, 11] = om;
-                        oSheet.Cells[zeile, 12] = (from a in schueler.AbwesenheitenSeitLetzterMaßnahme select a.Fehlstunden).Sum();
-                        zeile++;
+                                                zeile++;
                     }
+                    
+                    oXL.Visible = false;
+                    oXL.UserControl = false;
+                    oWB.SaveAs(Environment.GetFolderPath(Environment.SpecialFolder.Desktop) + "\\Steuerdatei-Absentismus.xlsx", Microsoft.Office.Interop.Excel.XlFileFormat.xlWorkbookDefault, Type.Missing, Type.Missing,
+                        false, false, Microsoft.Office.Interop.Excel.XlSaveAsAccessMode.xlNoChange,
+                        Type.Missing, Type.Missing, Type.Missing, Type.Missing, Type.Missing);
+
+                    oWB.Close();
+                    oXL.Quit();
+
                 }
                 catch (System.IO.IOException)
                 {

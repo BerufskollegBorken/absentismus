@@ -233,58 +233,58 @@ WHERE ID = " + Id + " AND hauptadresse_jn = 'j'", connection);
             return "";
         }
 
-        public string CreateSteuerdatei(int sj)
-        {
-            Microsoft.Office.Interop.Excel.Application excel;
-            Microsoft.Office.Interop.Excel.Workbook worKbooK;
-            Microsoft.Office.Interop.Excel.Worksheet worKsheeT;
-            Microsoft.Office.Interop.Excel.Range celLrangE;
+        //public string CreateSteuerdatei(int sj)
+        //{
+        //    Microsoft.Office.Interop.Excel.Application excel;
+        //    Microsoft.Office.Interop.Excel.Workbook worKbooK;
+        //    Microsoft.Office.Interop.Excel.Worksheet worKsheeT;
+        //    Microsoft.Office.Interop.Excel.Range celLrangE;
 
-            excel = new Microsoft.Office.Interop.Excel.Application();
-            excel.Visible = false;
-            excel.DisplayAlerts = false;
-            worKbooK = excel.Workbooks.Add(Type.Missing);
+        //    excel = new Microsoft.Office.Interop.Excel.Application();
+        //    excel.Visible = false;
+        //    excel.DisplayAlerts = false;
+        //    worKbooK = excel.Workbooks.Add(Type.Missing);
             
-            worKsheeT = (Microsoft.Office.Interop.Excel.Worksheet)worKbooK.ActiveSheet;
-            worKsheeT.Name = "SteuerdateiFehlzeiten";
+        //    worKsheeT = (Microsoft.Office.Interop.Excel.Worksheet)worKbooK.ActiveSheet;
+        //    worKsheeT.Name = "SteuerdateiFehlzeiten";
 
-            worKsheeT.Cells[1, 1] = "Nachname";
+        //    worKsheeT.Cells[1, 1] = "Nachname";
             
-            int rowcount = 2;
+        //    int rowcount = 2;
 
-            string maßnahme = GetUnentschuldigteAbwesenheitenSeitLetzterMaßnahme()
+        //    ///string maßnahme = GetUnentschuldigteAbwesenheitenSeitLetzterMaßnahme(sj);
 
-            // Wenn keine OM bisher existiert, dann wird zuerst gemahnt.
+        //    // Wenn keine OM bisher existiert, dann wird zuerst gemahnt.
 
-            if (this.Ordnungsmaßnahmen.Count() == 0)
-            {
-                return CreateBescheid(
-                    "Schriftliche Mahnung.docx", 
-                    @"c:\\users\\bm\\Desktop\\" + DateTime.Now.ToString("yyyyMMdd") + "-" + Nachname + "-" + Vorname + "-Mahnung" + ".docx"
-                    );
-            }
+        //    if (this.Ordnungsmaßnahmen.Count() == 0)
+        //    {
+        //        return CreateBescheid(
+        //            "Schriftliche Mahnung.docx", 
+        //            @"c:\\users\\bm\\Desktop\\" + DateTime.Now.ToString("yyyyMMdd") + "-" + Nachname + "-" + Vorname + "-Mahnung" + ".docx"
+        //            );
+        //    }
 
-            // Wenn eine Mahnung aus dem aktuelle SJ existiert
+        //    // Wenn eine Mahnung aus dem aktuelle SJ existiert
 
-            if ((from o in this.Ordnungsmaßnahmen where o.Datum > new DateTime(sj,8,1) where  o.Kürzel.StartsWith("M") select o).Any())
-            {
-                if (this.IstSchulpflichtig)
-                {
-                    return CreateBescheid(
-                        "Schriftliche Mahnung.docx",
-                        @"c:\\users\\bm\\Desktop\\" + DateTime.Now.ToString("yyyyMMdd") + "-" + Nachname + "-" + Vorname + "-Mahnung" + ".docx"
-                        );
-                }
-                else
-                {
-                    return CreateBescheid(
-                        "Einladung OM.docx", 
-                        @"c:\\users\\bm\\Desktop\\" + DateTime.Now.ToString("yyyyMMdd") + "-" + Nachname + "-" + Vorname + "-Ordnungsmaßnahme" + ".docx"
-                        );
-                }
-            }
-            return "";
-        }
+        //    if ((from o in this.Ordnungsmaßnahmen where o.Datum > new DateTime(sj,8,1) where  o.Kürzel.StartsWith("M") select o).Any())
+        //    {
+        //        if (this.IstSchulpflichtig)
+        //        {
+        //            return CreateBescheid(
+        //                "Schriftliche Mahnung.docx",
+        //                @"c:\\users\\bm\\Desktop\\" + DateTime.Now.ToString("yyyyMMdd") + "-" + Nachname + "-" + Vorname + "-Mahnung" + ".docx"
+        //                );
+        //        }
+        //        else
+        //        {
+        //            return CreateBescheid(
+        //                "Einladung OM.docx", 
+        //                @"c:\\users\\bm\\Desktop\\" + DateTime.Now.ToString("yyyyMMdd") + "-" + Nachname + "-" + Vorname + "-Ordnungsmaßnahme" + ".docx"
+        //                );
+        //        }
+        //    }
+        //    return "";
+        //}
         
         private string CreateBescheid(string origFileName, string fileName)
         {
