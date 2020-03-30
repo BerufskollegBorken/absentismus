@@ -10,9 +10,9 @@ namespace Absentismus
         {
         }
 
-        public Raums(string aktSj, string connectionString, Periodes periodes)
+        public Raums(Periodes periodes)
         {
-            using (OleDbConnection oleDbConnection = new OleDbConnection(connectionString))
+            using (OleDbConnection oleDbConnection = new OleDbConnection(Global.ConU))
             {
                 try
                 {
@@ -21,7 +21,7 @@ namespace Absentismus
                                                     Room.Longname,
                                                     Room.Capacity
                                                     FROM Room
-                                                    WHERE (((Room.SCHOOLYEAR_ID)= " + aktSj + ") AND ((Room.SCHOOL_ID)=177659) AND  ((Room.TERM_ID)=" + periodes.Count + "))";
+                                                    WHERE (((Room.SCHOOLYEAR_ID)= " + Global.AktSjUnt + ") AND ((Room.SCHOOL_ID)=177659) AND  ((Room.TERM_ID)=" + periodes.Count + "))";
 
                     OleDbCommand oleDbCommand = new OleDbCommand(queryString, oleDbConnection);
                     oleDbConnection.Open();

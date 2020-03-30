@@ -2,21 +2,25 @@
 
 namespace Absentismus
 {
-    public class Ordnungsmaßnahme
+    public class Maßnahme
     {
         public int SchuelerId { get; private set; }
         public string Beschreibung { get; private set; }
         public DateTime Datum { get; private set; }
         public string Kürzel { get; private set; }
-        public Abwesenheiten FehlstundenBisJetztOderVorDieserMaßnahme { get; internal set; }
+        
+        /// <summary>
+        /// Fehlstunden bis jetzt oder vor dieser Maßnahme.
+        /// </summary>
+        public Abwesenheiten AngemahnteAbwesenheitenDieserMaßnahme { get; internal set; }
 
-        public Ordnungsmaßnahme(int schuelerId, string beschreibung, DateTime datum, string kürzel)
+        public Maßnahme(int schuelerId, string beschreibung, DateTime datum, string kürzel)
         {
             SchuelerId = schuelerId;
             Beschreibung = beschreibung;
             Datum = datum;
             Kürzel = kürzel;
-            FehlstundenBisJetztOderVorDieserMaßnahme = new Abwesenheiten();
+            AngemahnteAbwesenheitenDieserMaßnahme = new Abwesenheiten();
         }
     }
 }

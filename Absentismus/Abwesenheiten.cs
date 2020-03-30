@@ -11,14 +11,10 @@ namespace Absentismus
     {
         public Abwesenheiten()
         {
-        }
-
-        public Abwesenheiten(string inputAbwesenheitenCsv)
-        {            
-            using (StreamReader reader = new StreamReader(inputAbwesenheitenCsv))
+            using (StreamReader reader = new StreamReader(Global.InputAbwesenheitenCsv))
             {
                 string überschrift = reader.ReadLine();
-                
+
                 while (true)
                 {
                     string line = reader.ReadLine();
@@ -28,8 +24,13 @@ namespace Absentismus
                         if (line != null)
                         {
                             Abwesenheit abwesenheit = new Abwesenheit(line);
-                                                        
-                            this.Add(abwesenheit);
+
+                            if (
+                                abwesenheit.Grund == "offen" || 
+                                abwesenheit.Grund == "nicht entsch.")
+                            {
+                                this.Add(abwesenheit);
+                            }                            
                         }
                     }
                     catch (Exception ex)

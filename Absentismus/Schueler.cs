@@ -8,63 +8,86 @@ using Microsoft.Office.Interop.Word;
 namespace Absentismus
 {
     public class Schueler
-    {
+    {   
+        /// <summary>
+        /// Atlantis-ID
+        /// </summary>
         public int Id { get; set; }
-        public DateTime Gebdat { get; set; }
-        public Klasse Klasse { get; private set; }
-        public bool IstSchulpflichtig { get; private set; }
-        public List<Abwesenheit> Abwesenheiten { get; private set; }
-        public List<Abwesenheit> UnentschuldigteFehlstundenInLetzten30Tagen { get; private set; }
         public string Nachname { get; private set; }
         public string Vorname { get; private set; }
-        public int FehltUnunterbrochenUnentschuldigtSeitTagen { get; internal set; }
-        public bool IstVolljährig { get; private set; }
-        public List<Ordnungsmaßnahme> Ordnungsmaßnahmen { get; private set; }
-        public Adresse Adresse { get; private set; }
-        public Abwesenheiten AbwesenheitenSeitLetzterMaßnahme { get; private set; }
-
-        public Schueler(int id, string nachname, string vorname, DateTime gebdat, string klasse, Klasses klasses, List<Abwesenheit> abwesenheiten, Feriens feriens, Ordnungsmaßnahmen om, int aktSj)
+        public Klasse Klasse { get; private set; }
+        public DateTime Gebdat { get; set; }        
+        public bool IstVolljährig
         {
-            Id = id;
-            Nachname = nachname;
-            Vorname = vorname;
-            Gebdat = gebdat;
-            Klasse = GetKlasse(klasses, klasse);
-            Abwesenheiten = abwesenheiten;
-            IstSchulpflichtig = GetSchulpflicht();
-            IstVolljährig = GetVolljährigkeit();            
-            FehltUnunterbrochenUnentschuldigtSeitTagen = GetUnunterbrocheneFehltageSeitTagen(feriens);
-            Ordnungsmaßnahmen = om.GetFehlstundenVorDieserMaßnahme(Abwesenheiten, aktSj);
-            AbwesenheitenSeitLetzterMaßnahme = GetUnentschuldigteAbwesenheitenSeitLetzterMaßnahme(aktSj);
-        }
-
-        private Klasse GetKlasse(Klasses klasses, string klasse)
-        {
-            return (from k in klasses where k.NameUntis == klasse select k).FirstOrDefault();
-        }
-
-        private Abwesenheiten GetUnentschuldigteAbwesenheitenSeitLetzterMaßnahme(int aktSj)
-        {
-            DateTime datumLletzteMaßnahme = Ordnungsmaßnahmen.Count == 0 ? new DateTime(aktSj,8,1) : (from o in Ordnungsmaßnahmen select o.Datum).LastOrDefault();
-
-            Abwesenheiten ab = new Abwesenheiten();
-
-            ab.AddRange((from a in Abwesenheiten where a.Datum > datumLletzteMaßnahme select a).ToList()); 
-            return ab;
-        }
-
-        private bool GetVolljährigkeit()
-        {
-            if (DateTime.Now >= Gebdat.AddYears(18))
+            get
             {
-                return true;
-            }
-            return false;
+                if (DateTime.Now >= Gebdat.AddYears(18))
+                {
+                    return true;
+                }
+                return false;
+            } 
         }
-
-        private int GetUnunterbrocheneFehltageSeitTagen(Feriens feriens)
+        public bool IstSchulpflichtig
         {
-            try
+            get {
+                try
+                {
+                    // Minderjährige sind schulpflichtig
+
+                    if (DateTime.Now < Gebdat.AddYears(18))
+                    {
+                        return true;
+                    }
+
+                    // Wenn ein Vollzeitschüler ..
+
+                    if (!Klasse.Jahrgang.StartsWith("BS"))
+                    {
+                        // ... 18 ist ...
+
+                        if (DateTime.Now >= Gebdat.AddYears(18))
+                        {
+                            // ...  aber erst nach SJ-Beginn 18 geworden ist, ...
+
+                            if (Gebdat.AddYears(18) >= (new DateTime((DateTime.Now.Month >= 8 ? DateTime.Now.Year : DateTime.Now.Year - 1), 8, 1)))
+                            {
+                                // ... dann ist er bis zum Ende des SJ schulpflichtig.
+
+                                return true;
+                            }
+                        }
+                    }
+
+                    // Wenn ein Berufsschüler ...
+
+                    if (Klasse.Jahrgang.StartsWith("BS"))
+                    {
+                        // ... vor der Vollendung seines 21. Lebensjahrs die Berufsausbildung beginnt, ...
+
+                        if (Bildungsgangeintrittsdatum < Gebdat.AddYears(21))
+                        {
+                            // ... ist er bis zum Ende berufsschulpflichtig.
+
+                            return true;
+                        }
+                    }
+                }
+                catch (Exception)
+                {
+                    return false;
+                }
+                return false;
+            }
+        }
+        
+        /// <summary>
+        /// Jede Abwesenheit steht für das Fehlen eines Schülers an einem Schultag
+        /// </summary>
+        public List<Abwesenheit> Abwesenheiten { get; private set; }
+        public int FehltUnunterbrochenUnentschuldigtSeitTagen
+        {
+            get
             {
                 int fehltUnentschuldigtSeitTagen = 0;
 
@@ -76,7 +99,7 @@ namespace Absentismus
                     {
                         if (!(tag.DayOfWeek == DayOfWeek.Saturday))
                         {
-                            if (!feriens.IstFerienTag(tag))
+                            if (!this.Feriens.IstFerienTag(tag))
                             {
                                 if ((from a in this.Abwesenheiten where a.Datum.Date == tag.Date select a).Any())
                                 {
@@ -90,100 +113,196 @@ namespace Absentismus
                         }
                     }
                 }
-                return fehltUnentschuldigtSeitTagen;
+                return FehltUnunterbrochenUnentschuldigtSeitTagen;
             }
-            catch (Exception)
-            {
-
-                throw;
-            }            
-        }
-
-        private List<Abwesenheit> GetUnenrschuldigteFehlstundenInLetzten30Tagen()
+        }        
+        public List<Maßnahme> Maßnahmen
         {
-            List<Abwesenheit> offeneAbwesenheiten = new List<Abwesenheit>();
-            List<Abwesenheit> offeneAbwesenheiten30 = new List<Abwesenheit>();
-
-            foreach (var a in this.Abwesenheiten)
+            get
+            {   
+                return Maßnahmen;
+            }
+            set
             {
-                if ((a.Status == "nicht entsch." || a.Status == "offen"))
+                var maßnahmen = value;
+
+                DateTime omDavor = new DateTime(AktSj, 8, 1);
+                
+                for (int i = 0; i < maßnahmen.Count(); i++)
                 {
-                    if (a.Datum > DateTime.Now.AddDays(-30))
-                    {
-                        offeneAbwesenheiten30.Add(a);
-                    }
-                    offeneAbwesenheiten.Add(a);
+                    // Datum der vorherigen Maßnahme, bzw. des Schuljahresbeginns.
+
+                    omDavor = i == 0 ? omDavor : maßnahmen[i - 1].Datum;
+                    
+                    maßnahmen[i].AngemahnteAbwesenheitenDieserMaßnahme.AddRange(
+                        (from a in Abwesenheiten
+                         where omDavor < a.Datum
+                         where a.Datum < maßnahmen[i].Datum
+                         select a).ToList());
                 }
             }
-            return offeneAbwesenheiten;            
         }
 
-        private bool GetSchulpflicht()
+        internal void AusstehendeMaßnahme()
         {
-            try
+            // SchulG §47 (1):  Das Schulverhältnis endet, wenn die nicht mehr schulpflichtige
+            // Schülerin oder der nicht mehr schulpflichtige Schüler trotz schriftlicher Erinnerung 
+            // ununterbrochen 20 Unterrichtstage unentschuldigt fehlt
+
+            if (!IstSchulpflichtig && FehltUnunterbrochenUnentschuldigtSeitTagen >= 12)
             {
-                // Bei Vollzeitschülern der Anlage B, C, D endet die Schulpflicht am Ende des Schuljahres, in dem der Schüler 18 wird.
-
-                if (Klasse.NameUntis.StartsWith("HH") || Klasse.NameUntis.StartsWith("HBT") || Klasse.NameUntis.StartsWith("HBF") || Klasse.NameUntis.StartsWith("12"))
-                {
-                    // Wenn der Schüler 18 ist ...
-
-                    if (DateTime.Now >= Gebdat.AddYears(18))
-                    {
-                        // ...  aber ersrt nach SJ-Beginn, ...
-
-                        if (Gebdat.AddYears(18) >= (new DateTime((DateTime.Now.Month >= 8 ? DateTime.Now.Year : DateTime.Now.Year - 1), 8, 1)))
-                        {
-                            // ... dann ist er bis zum Ende des SJ schulpflichtig
-
-                            return true;
-                        }
-                        return false;
-                    }
-                }
+                //ToDo: schriftliche Erinnerung 
+                return;
             }
-            catch (Exception)
+
+            // Bei Volljährigen, die seit 20 Tage ununterbrochen fehlen, schulen wir aus 
+
+            if (!IstSchulpflichtig && FehltUnunterbrochenUnentschuldigtSeitTagen >= 20)
             {
-                return true;
+                //ToDo: Ausschulung 
+                return;
             }
-            
-            return true;
+
+            // SchulG §53(4): Die Entlassung einer Schülerin oder eines Schülers, die oder der nicht mehr schulpflichtig ist, kann ohne vorherige Androhung erfolgen, wenn die Schülerin oder der Schüler innerhalb eines Zeitraumes von 30 Tagen insgesamt 20 Unterrichtsstunden unentschuldigt versäumt hat
+
+            if (!IstSchulpflichtig && (from a in Abwesenheiten
+                                       where a.Datum > DateTime.Now.AddDays(-30)
+                                       select a.Fehlstunden).Sum() > 20)
+            {
+                //ToDo: Ausschulung
+                return;
+            }
+
+            // Wenn eine Schülerin oder ein Schüler mehr als ein Tag unentschuldigt gefehlt hat, und noch keine Maßnahme ergriffen wurde, wird das Erzieherische Gespräch mit der Klassenleitung geführt.
+
+            if (Maßnahmen.Count == 0 && (from a in Abwesenheiten
+                                         select a.Fehlstunden).Sum() > 8)
+            {
+                //ToDo: Erzieherisches Gespräch mit Klassenleitung
+                return;
+            }
+
+            // Wenn eine Schülerin oder ein Schüler mehr als zwei Tage unentschuldigt gefehlt hat,
+            // und noch keine Maßnahme ergriffen wurde, wird das Erzieherische Gespräch mit der SL geführt.
+
+            if (Maßnahmen.Count == 0 && (from a in Abwesenheiten
+                                         select a.Fehlstunden).Sum() > 16)
+            {
+                //ToDo: Erzieherisches Gespräch mit Schulleitung
+                return;
+            }
+
+            // Wenn eine Schülerin oder ein Schüler mehr als zwei Tage unentschuldigt seit dem Erzieherischen Gespräch mit der Schulleitung gefehlt hat, wird gemahnt.
+
+            if (
+                    Maßnahmen.Count > 0 && 
+                    Maßnahmen[0].Kürzel.StartsWith("E") && 
+                    (from a in Abwesenheiten
+                     where a.Datum > Maßnahmen[0].Datum
+                     select a).Count() > 2
+                )
+            {
+                //ToDo: Mahnung
+                return;
+            }
+
+            // Wenn eine Schülerin oder ein Schüler mehr als zwei Tage unentschuldigt seit der Mahnung gefehlt hat, wird eine OM angesetzt.
+
+            if (
+                    Maßnahmen.Count > 0 &&
+                    (from m in Maßnahmen where m.Kürzel.StartsWith("M") select m).Any() &&
+                    (from a in Abwesenheiten
+                     where a.Datum > (from m in Maßnahmen where m.Kürzel.StartsWith("M") select m.Datum).FirstOrDefault()
+                     select a).Count() > 2
+                )
+            {
+                //ToDo: OM
+                return;
+            }
+
+            // Wenn eine Schülerin oder ein Schüler mehr als zwei Tage unentschuldigt seit der ersten OM gefehlt hat, kommt die zweite OM.
+
+            if (
+                    Maßnahmen.Count > 0 &&
+                    (from m in Maßnahmen where m.Kürzel.StartsWith("O") select m).Any() &&
+                    (from a in Abwesenheiten
+                     where a.Datum > (from m in Maßnahmen where m.Kürzel.StartsWith("O") select m.Datum).FirstOrDefault()
+                     select a).Count() > 2
+                )
+            {
+                //ToDo: OM
+                return;
+            }
         }
 
+        public Adresse Adresse { get; private set; }
+
+        /// <summary>
+        /// Abwesenheiten pro Schüler pro Schultag seit der vorhergehenden Maßnahme oder seit Beginn des Schuljahres, falls es noch keine Maßnahme gab. 
+        /// </summary>
+        public Abwesenheiten AbwesenheitenSeitLetzterMaßnahme
+        {
+            get
+            {
+                DateTime datumLetzteMaßnahme = Maßnahmen.Count == 0 ? new DateTime(AktSj, 8, 1) : (from o in Maßnahmen select o.Datum).LastOrDefault();
+
+                Abwesenheiten ab = new Abwesenheiten();
+
+                ab.AddRange((from a in Abwesenheiten
+                             where a.StudentId == Id
+                             where a.Datum > datumLetzteMaßnahme
+                             select a).ToList());
+                return ab;
+            }
+        }
+        public DateTime Bildungsgangeintrittsdatum { get; private set; }
+        public Feriens Feriens { get; private set; }
+        public int AktSj { get; private set; }
+
+        public Schueler(int id, string nachname, string vorname, DateTime gebdat, Klasse klasse, DateTime bildungsgangeintrittsdatum, List<Abwesenheit> abwesenheiten, Feriens feriens, List<Maßnahme> maßnahmen, int aktSj)
+        {
+            Id = id;
+            Nachname = nachname;
+            Vorname = vorname;
+            Klasse = klasse;
+            Gebdat = gebdat;            
+            Feriens = feriens;
+            AktSj = aktSj;
+            Bildungsgangeintrittsdatum = bildungsgangeintrittsdatum;
+            Abwesenheiten = abwesenheiten;
+            Console.Write(IstVolljährig);
+            Console.Write(IstSchulpflichtig);
+            Console.Write(FehltUnunterbrochenUnentschuldigtSeitTagen);
+            Maßnahmen = maßnahmen;
+            Console.WriteLine(AbwesenheitenSeitLetzterMaßnahme);
+        }
+        
         internal string Render(string m)
         {
-            var x = (from o in Ordnungsmaßnahmen where o.Kürzel == m select o).FirstOrDefault();
+            var x = (from o in Maßnahmen where o.Kürzel == m select o).FirstOrDefault();
 
             if (x != null)
             {
-                var z = (from aaa in x.FehlstundenBisJetztOderVorDieserMaßnahme select aaa.Fehlstunden).Sum();
+                var z = (from aaa in x.AngemahnteAbwesenheitenDieserMaßnahme select aaa.Fehlstunden).Sum();
 
                 return x.Datum.ToShortDateString() + "(" + z + ")";
             }
             return "";
         }
         
-        internal void RenderOrdnungsmaßnahmen()
+        internal void RenderMaßnahmen()
         {
-            foreach (var om in this.Ordnungsmaßnahmen)
+            foreach (var om in this.Maßnahmen)
             {
                 Console.WriteLine("      " + om.Beschreibung + " (" + om.Datum.ToShortDateString() + ")");
             }            
         }
-
-        internal void RenderUnentschuldigteFehlstunden()
-        {
-            foreach (var un in UnentschuldigteFehlstundenInLetzten30Tagen)
-            {
-                Console.WriteLine("      " + un.Datum.ToShortDateString() + " Stunden:" + un.Fehlstunden);
-            }
-        }
-
+        
         internal string GetE1Datum()
         {
-            if ((from o in this.Ordnungsmaßnahmen where o.Kürzel == "E1" select o).Any())
+            if ((from o in this.Maßnahmen where o.Kürzel == "E1" select o).Any())
             {
-                return (from o in this.Ordnungsmaßnahmen where o.Kürzel == "E1" select o.Datum.ToShortDateString()).FirstOrDefault();
+                return (from o in this.Maßnahmen where o.Kürzel == "E1" select o.Datum.ToShortDateString()).FirstOrDefault();
             }
             return "";
         }
@@ -226,9 +345,9 @@ WHERE ID = " + Id + " AND hauptadresse_jn = 'j'", connection);
 
         internal string GetADatum()
         {
-            if ((from o in this.Ordnungsmaßnahmen where o.Kürzel == "A" select o).Any())
+            if ((from o in this.Maßnahmen where o.Kürzel == "A" select o).Any())
             {
-                return (from o in this.Ordnungsmaßnahmen where o.Kürzel == "A" select o.Datum.ToShortDateString()).FirstOrDefault();
+                return (from o in this.Maßnahmen where o.Kürzel == "A" select o.Datum.ToShortDateString()).FirstOrDefault();
             }
             return "";
         }
@@ -256,7 +375,7 @@ WHERE ID = " + Id + " AND hauptadresse_jn = 'j'", connection);
 
         //    // Wenn keine OM bisher existiert, dann wird zuerst gemahnt.
 
-        //    if (this.Ordnungsmaßnahmen.Count() == 0)
+        //    if (this.Maßnahmen.Count() == 0)
         //    {
         //        return CreateBescheid(
         //            "Schriftliche Mahnung.docx", 
@@ -266,7 +385,7 @@ WHERE ID = " + Id + " AND hauptadresse_jn = 'j'", connection);
 
         //    // Wenn eine Mahnung aus dem aktuelle SJ existiert
 
-        //    if ((from o in this.Ordnungsmaßnahmen where o.Datum > new DateTime(sj,8,1) where  o.Kürzel.StartsWith("M") select o).Any())
+        //    if ((from o in this.Maßnahmen where o.Datum > new DateTime(sj,8,1) where  o.Kürzel.StartsWith("M") select o).Any())
         //    {
         //        if (this.IstSchulpflichtig)
         //        {
@@ -279,7 +398,7 @@ WHERE ID = " + Id + " AND hauptadresse_jn = 'j'", connection);
         //        {
         //            return CreateBescheid(
         //                "Einladung OM.docx", 
-        //                @"c:\\users\\bm\\Desktop\\" + DateTime.Now.ToString("yyyyMMdd") + "-" + Nachname + "-" + Vorname + "-Ordnungsmaßnahme" + ".docx"
+        //                @"c:\\users\\bm\\Desktop\\" + DateTime.Now.ToString("yyyyMMdd") + "-" + Nachname + "-" + Vorname + "-Maßnahme" + ".docx"
         //                );
         //        }
         //    }
@@ -339,7 +458,7 @@ WHERE ID = " + Id + " AND hauptadresse_jn = 'j'", connection);
         {
             string x = "";
 
-            foreach (var maßnahme in this.Ordnungsmaßnahmen)
+            foreach (var maßnahme in this.Maßnahmen)
             {
                 x += maßnahme.Beschreibung + " am " + maßnahme.Datum.ToShortDateString() + ", "; 
             }
@@ -380,27 +499,27 @@ WHERE ID = " + Id + " AND hauptadresse_jn = 'j'", connection);
 
         internal string GetM1Datum()
         {
-            if ((from o in this.Ordnungsmaßnahmen where o.Kürzel == "M1" select o).Any())
+            if ((from o in this.Maßnahmen where o.Kürzel == "M1" select o).Any())
             {
-                return (from o in this.Ordnungsmaßnahmen where o.Kürzel == "M1" select o.Datum.ToShortDateString()).FirstOrDefault();
+                return (from o in this.Maßnahmen where o.Kürzel == "M1" select o.Datum.ToShortDateString()).FirstOrDefault();
             }
             return "";
         }
 
         internal string GetOMDatum()
         {
-            if ((from o in this.Ordnungsmaßnahmen where o.Kürzel == "OM" select o).Any())
+            if ((from o in this.Maßnahmen where o.Kürzel == "OM" select o).Any())
             {
-                return (from o in this.Ordnungsmaßnahmen where o.Kürzel == "OM" select o.Datum.ToShortDateString()).FirstOrDefault();
+                return (from o in this.Maßnahmen where o.Kürzel == "OM" select o.Datum.ToShortDateString()).FirstOrDefault();
             }
             return "";
         }
 
         internal string GetM2Datum()
         {
-            if ((from o in this.Ordnungsmaßnahmen where o.Kürzel == "M2" select o).Any())
+            if ((from o in this.Maßnahmen where o.Kürzel == "M2" select o).Any())
             {
-                return "</br>" + (from o in this.Ordnungsmaßnahmen where o.Kürzel == "M2" select o.Datum.ToShortDateString()).FirstOrDefault();
+                return "</br>" + (from o in this.Maßnahmen where o.Kürzel == "M2" select o.Datum.ToShortDateString()).FirstOrDefault();
             }
             return "";
         }

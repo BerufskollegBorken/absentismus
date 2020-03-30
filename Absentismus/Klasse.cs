@@ -14,6 +14,10 @@ namespace Absentismus
         public string Url { get; internal set; }
         public string Jahrgang { get; internal set; }
         public DateTime ErsterSchultag { get; internal set; }
-                
+
+        public static implicit operator Klasse(string v)
+        {
+            throw new NotImplementedException();
+        }
     }
 }

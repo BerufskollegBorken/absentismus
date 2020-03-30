@@ -6,9 +6,9 @@ namespace Absentismus
 {
     public class Feriens : List<Ferien>
     {
-        public Feriens(string aktSj, string connectionString)
+        public Feriens()
         {
-            using (OleDbConnection oleDbConnection = new OleDbConnection(connectionString))
+            using (OleDbConnection oleDbConnection = new OleDbConnection(Global.ConU))
             {
                 string queryString = @"SELECT DISTINCT Holiday.Holiday_ID,
 Holiday.Name, 
@@ -17,7 +17,7 @@ Holiday.DateFrom,
 Holiday.DateTo, 
 Holiday.Flags
 FROM Holiday 
-WHERE (((Holiday.SCHOOLYEAR_ID)=" + aktSj + ") AND ((Holiday.SCHOOL_ID)=177659));";
+WHERE (((Holiday.SCHOOLYEAR_ID)=" + Global.AktSjUnt + ") AND ((Holiday.SCHOOL_ID)=177659));";
 
                 OleDbCommand oleDbCommand = new OleDbCommand(queryString, oleDbConnection);
                 oleDbConnection.Open();

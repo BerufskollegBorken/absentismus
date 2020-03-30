@@ -9,11 +9,11 @@ namespace Absentismus
     {
         public Lehrers Lehrers { get; set; }
 
-        public Klasses(string aktSj, Lehrers lehrers, Raums raums, string connectionString, Periodes periodes)
+        public Klasses(Lehrers lehrers, Periodes periodes)
         {
             Lehrers = lehrers;
 
-            using (OleDbConnection oleDbConnection = new OleDbConnection(connectionString))
+            using (OleDbConnection oleDbConnection = new OleDbConnection(Global.ConU))
             {
                 try
                 {
@@ -30,7 +30,7 @@ Class.TimeRequest,
 Class.ROOM_ID,
 Class.Text
 FROM (Class LEFT JOIN Department ON Class.DEPARTMENT_ID = Department.DEPARTMENT_ID) LEFT JOIN Teacher ON Class.TEACHER_ID = Teacher.TEACHER_ID
-WHERE (((Class.SCHOOL_ID)=177659) AND ((Class.TERM_ID)=" + periodes.Count + ") AND ((Class.Deleted)=False) AND ((Class.TERM_ID)=" + periodes.Count + ") AND ((Class.SCHOOLYEAR_ID)=" + aktSj + ") AND ((Department.SCHOOL_ID)=177659) AND ((Department.SCHOOLYEAR_ID)=" + aktSj + ") AND ((Teacher.SCHOOL_ID)=177659) AND ((Teacher.SCHOOLYEAR_ID)=" + aktSj + ") AND ((Teacher.TERM_ID)=" + periodes.Count + "))ORDER BY Class.Name ASC; ";
+WHERE (((Class.SCHOOL_ID)=177659) AND ((Class.TERM_ID)=" + periodes.Count + ") AND ((Class.Deleted)=False) AND ((Class.TERM_ID)=" + periodes.Count + ") AND ((Class.SCHOOLYEAR_ID)=" + Global.AktSjUnt + ") AND ((Department.SCHOOL_ID)=177659) AND ((Department.SCHOOLYEAR_ID)=" + Global.AktSjUnt + ") AND ((Teacher.SCHOOL_ID)=177659) AND ((Teacher.SCHOOLYEAR_ID)=" + Global.AktSjUnt + ") AND ((Teacher.TERM_ID)=" + periodes.Count + "))ORDER BY Class.Name ASC; ";
 
                     OleDbCommand oleDbCommand = new OleDbCommand(queryString, oleDbConnection);
                     oleDbConnection.Open();
@@ -57,7 +57,6 @@ WHERE (((Class.SCHOOL_ID)=177659) AND ((Class.TERM_ID)=" + periodes.Count + ") A
                             Jahrgang = Global.SafeGetString(oleDbDataReader, 5),
                             Bereichsleitung = Global.SafeGetString(oleDbDataReader, 7),
                             Beschreibung = Global.SafeGetString(oleDbDataReader, 3),
-                            Raum = (from r in raums where r.IdUntis == oleDbDataReader.GetInt32(9) select r).FirstOrDefault(),
                             Url = "https://www.berufskolleg-borken.de/bildungsgange/" + Global.SafeGetString(oleDbDataReader, 10)
                         };
 
