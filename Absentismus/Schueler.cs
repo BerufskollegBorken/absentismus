@@ -259,22 +259,14 @@ namespace Absentismus
         public Feriens Feriens { get; private set; }
         public int AktSj { get; private set; }
 
-        public Schueler(int id, string nachname, string vorname, DateTime gebdat, Klasse klasse, DateTime bildungsgangeintrittsdatum, List<Abwesenheit> abwesenheiten, Feriens feriens, List<Maßnahme> maßnahmen, int aktSj)
+        public Schueler(int id, string nachname, string vorname, DateTime gebdat, Klasse klasse, DateTime bildungsgangeintrittsdatum)
         {
             Id = id;
             Nachname = nachname;
             Vorname = vorname;
             Klasse = klasse;
             Gebdat = gebdat;            
-            Feriens = feriens;
-            AktSj = aktSj;
-            Bildungsgangeintrittsdatum = bildungsgangeintrittsdatum;
-            Abwesenheiten = abwesenheiten;
-            Console.Write(IstVolljährig);
-            Console.Write(IstSchulpflichtig);
-            Console.Write(FehltUnunterbrochenUnentschuldigtSeitTagen);
-            Maßnahmen = maßnahmen;
-            Console.WriteLine(AbwesenheitenSeitLetzterMaßnahme);
+            Bildungsgangeintrittsdatum = bildungsgangeintrittsdatum;            
         }
         
         internal string Render(string m)

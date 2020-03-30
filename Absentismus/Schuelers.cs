@@ -37,12 +37,12 @@ WHERE vorgang_schuljahr = '" + Global.AktSjAtl + "'", connection);
                     foreach (DataRow theRow in dataSet.Tables["DBA.leistungsdaten"].Rows)
                     {                        
                         int id = Convert.ToInt32(theRow["ID"]);
+
                         DateTime austrittsdatum = theRow["Austrittsdatum"].ToString().Length < 3 ? new DateTime() : DateTime.ParseExact(theRow["Austrittsdatum"].ToString(), "dd.MM.yyyy HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture);
 
                         DateTime bildungsgangEintrittDatum = theRow["bildungsgangEintrittDatum"].ToString().Length < 3 ? new DateTime() : DateTime.ParseExact(theRow["bildungsgangEintrittDatum"].ToString(), "dd.MM.yyyy HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture);
-
-                        
-                        if (austrittsdatum.Year == 1 && (from a in abwesenheiten where a.StudentId == id where (a.Status == "offen" || a.Status == "nicht entsch.") select a).Any())
+                                                
+                        if (austrittsdatum.Year == 1)
                         {
                             DateTime gebdat = theRow["Gebdat"].ToString().Length < 3 ? new DateTime() : DateTime.ParseExact(theRow["Gebdat"].ToString(), "dd.MM.yyyy HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture);
 
@@ -51,24 +51,14 @@ WHERE vorgang_schuljahr = '" + Global.AktSjAtl + "'", connection);
                             string nachname = theRow["Nachname"] == null ? "" : theRow["Nachname"].ToString();
                             string vorname = theRow["Vorname"] == null ? "" : theRow["Vorname"].ToString();
 
-                            var ab = (from a in abwesenheiten where a.StudentId == id select a).ToList();
-
-                            Maßnahmen om = new Maßnahmen();
-                            om.AddRange((from o in maßnahmen where o.SchuelerId == id select o).ToList());
-
                             Schueler schueler = new Schueler(
                                 id,
                                 nachname,
                                 vorname,
                                 gebdat,
                                 klasse,
-                                bildungsgangEintrittDatum,
-                                ab,
-                                feriens,
-                                om,
-                                Convert.ToInt32(aktSj[0])
-                                )
-                                ;
+                                bildungsgangEintrittDatum
+                                );
 
                             this.Add(schueler);
                         }
