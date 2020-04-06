@@ -7,6 +7,9 @@ using System.IO;
 
 namespace Absentismus
 {
+    /// <summary>
+    /// Offene und unentschuldigte Abwesenheiten an Schultagen.
+    /// </summary>
     public class Abwesenheiten : List<Abwesenheit>
     {
         public Abwesenheiten()
@@ -26,8 +29,8 @@ namespace Absentismus
                             Abwesenheit abwesenheit = new Abwesenheit(line);
 
                             if (
-                                abwesenheit.Grund == "offen" || 
-                                abwesenheit.Grund == "nicht entsch.")
+                                abwesenheit.Status == "offen" || 
+                                abwesenheit.Status == "nicht entsch.")
                             {
                                 this.Add(abwesenheit);
                             }                            

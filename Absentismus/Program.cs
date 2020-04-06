@@ -24,7 +24,7 @@ namespace Absentismus
 
                 schuelers.Abwesenheiten();
                 schuelers.ZurückliegendeMaßnahmen();
-
+                schuelers.FehlzeitenUnunterbrochenSeitTagen(frns);
                 schuelers.AnstehendeMaßnahmen();
                 
                 Console.ReadKey();

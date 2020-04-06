@@ -85,73 +85,21 @@ namespace Absentismus
         /// Jede Abwesenheit steht für das Fehlen eines Schülers an einem Schultag
         /// </summary>
         public List<Abwesenheit> Abwesenheiten { get; private set; }
-        public int FehltUnunterbrochenUnentschuldigtSeitTagen
-        {
-            get
-            {
-                int fehltUnentschuldigtSeitTagen = 0;
-
-                for (int t = -1; t > -28; t--)
-                {
-                    DateTime tag = DateTime.Now.Date.AddDays(t);
-
-                    if (!(tag.DayOfWeek == DayOfWeek.Sunday))
-                    {
-                        if (!(tag.DayOfWeek == DayOfWeek.Saturday))
-                        {
-                            if (!this.Feriens.IstFerienTag(tag))
-                            {
-                                if ((from a in this.Abwesenheiten where a.Datum.Date == tag.Date select a).Any())
-                                {
-                                    fehltUnentschuldigtSeitTagen++;
-                                }
-                                else
-                                {
-                                    return fehltUnentschuldigtSeitTagen;
-                                }
-                            }
-                        }
-                    }
-                }
-                return FehltUnunterbrochenUnentschuldigtSeitTagen;
-            }
-        }        
-        public List<Maßnahme> Maßnahmen
-        {
-            get
-            {   
-                return Maßnahmen;
-            }
-            set
-            {
-                var maßnahmen = value;
-
-                DateTime omDavor = new DateTime(AktSj, 8, 1);
-                
-                for (int i = 0; i < maßnahmen.Count(); i++)
-                {
-                    // Datum der vorherigen Maßnahme, bzw. des Schuljahresbeginns.
-
-                    omDavor = i == 0 ? omDavor : maßnahmen[i - 1].Datum;
-                    
-                    maßnahmen[i].AngemahnteAbwesenheitenDieserMaßnahme.AddRange(
-                        (from a in Abwesenheiten
-                         where omDavor < a.Datum
-                         where a.Datum < maßnahmen[i].Datum
-                         select a).ToList());
-                }
-            }
-        }
+        public int FehltUnunterbrochenUnentschuldigtSeitTagen { get; set; }
+        
+        public List<Maßnahme> Maßnahmen { get; set; }
 
         internal void AusstehendeMaßnahme()
         {
+            string klasseName = (Klasse.NameUntis.PadRight(6) + " " + (Nachname + "," + Vorname + "(" + (IstVolljährig ? "vj" : "mj") + "/" + (!IstSchulpflichtig ? "nsp" : "sp") + ")").Substring(0, Math.Min(Nachname.Length + 1 + Vorname.Length, 20))).PadRight(27) + ": ";
+
             // SchulG §47 (1):  Das Schulverhältnis endet, wenn die nicht mehr schulpflichtige
             // Schülerin oder der nicht mehr schulpflichtige Schüler trotz schriftlicher Erinnerung 
             // ununterbrochen 20 Unterrichtstage unentschuldigt fehlt
 
             if (!IstSchulpflichtig && FehltUnunterbrochenUnentschuldigtSeitTagen >= 12)
             {
-                //ToDo: schriftliche Erinnerung 
+                Console.WriteLine(klasseName + " SCHRIFTL. ERINNERUNG; fehlt seit " + FehltUnunterbrochenUnentschuldigtSeitTagen + " Tagen ununterbrochen."); 
                 return;
             }
 
@@ -159,7 +107,7 @@ namespace Absentismus
 
             if (!IstSchulpflichtig && FehltUnunterbrochenUnentschuldigtSeitTagen >= 20)
             {
-                //ToDo: Ausschulung 
+                Console.WriteLine(klasseName + ("AUSSCHULUNG").PadRight(20) + "; fehlt seit " + FehltUnunterbrochenUnentschuldigtSeitTagen + " Tagen ununterbrochen.");
                 return;
             }
 
@@ -169,7 +117,11 @@ namespace Absentismus
                                        where a.Datum > DateTime.Now.AddDays(-30)
                                        select a.Fehlstunden).Sum() > 20)
             {
-                //ToDo: Ausschulung
+                Console.WriteLine(klasseName + ("AUSSCHULUNG").PadRight(20) +"; fehlt in den letzten 30 Tagen " + 
+                    (from a in Abwesenheiten
+                     where a.Datum > DateTime.Now.AddDays(-30)
+                     select a.Fehlstunden).Sum() 
+                     + " Stunden unentschuldigt.");
                 return;
             }
 
@@ -178,7 +130,10 @@ namespace Absentismus
             if (Maßnahmen.Count == 0 && (from a in Abwesenheiten
                                          select a.Fehlstunden).Sum() > 8)
             {
-                //ToDo: Erzieherisches Gespräch mit Klassenleitung
+                Console.WriteLine(klasseName + ("ERZ. Gespr. KL").PadRight(20) + "; fehlt " +
+                    (from a in Abwesenheiten                     
+                     select a.Fehlstunden).Sum()
+                     + " Stunden unentschuldigt; bisher keine Maßnahme");
                 return;
             }
 
@@ -188,25 +143,32 @@ namespace Absentismus
             if (Maßnahmen.Count == 0 && (from a in Abwesenheiten
                                          select a.Fehlstunden).Sum() > 16)
             {
-                //ToDo: Erzieherisches Gespräch mit Schulleitung
+                Console.WriteLine(klasseName + ("ERZ. Gespr. SL").PadRight(20) + "; fehlt " +
+                    (from a in Abwesenheiten                     
+                     select a.Fehlstunden).Sum()
+                     + " Stunden unentschuldigt; bisher keine Maßnahme");
                 return;
             }
 
-            // Wenn eine Schülerin oder ein Schüler mehr als zwei Tage unentschuldigt seit dem Erzieherischen Gespräch mit der Schulleitung gefehlt hat, wird gemahnt.
+            // Wenn eine Schülerin oder ein Schüler zwei oder mehr Tage unentschuldigt seit dem Erzieherischen Gespräch mit der Schulleitung gefehlt hat, wird gemahnt.
 
             if (
                     Maßnahmen.Count > 0 && 
                     Maßnahmen[0].Kürzel.StartsWith("E") && 
                     (from a in Abwesenheiten
                      where a.Datum > Maßnahmen[0].Datum
-                     select a).Count() > 2
+                     select a).Count() >= 2
                 )
             {
-                //ToDo: Mahnung
+                Console.WriteLine(klasseName + ("MAHNUNG").PadRight(20) + "; fehlt " +
+                    (from a in Abwesenheiten
+                     where a.Datum > Maßnahmen[0].Datum
+                     select a).Count()
+                     + " Tage unentschuldigt seit dem Gespräch mit der Schulleitung (" + Maßnahmen[0].Datum.ToShortDateString() + ").");
                 return;
             }
 
-            // Wenn eine Schülerin oder ein Schüler mehr als zwei Tage unentschuldigt seit der Mahnung gefehlt hat, wird eine OM angesetzt.
+            // Wenn eine Schülerin oder ein Schüler zwei Tage oder mehr unentschuldigt seit der Mahnung gefehlt hat, wird eine OM angesetzt.
 
             if (
                     Maßnahmen.Count > 0 &&
@@ -216,7 +178,11 @@ namespace Absentismus
                      select a).Count() > 2
                 )
             {
-                //ToDo: OM
+                Console.WriteLine(klasseName + ("OM Konf. #1").PadRight(20) + "; fehlt " +
+                    (from a in Abwesenheiten
+                     where a.Datum > (from m in Maßnahmen where m.Kürzel.StartsWith("M") select m.Datum).FirstOrDefault()
+                     select a).Count()
+                     + " Tage unentschuldigt seit der Mahnung (" + (from m in Maßnahmen where m.Kürzel.StartsWith("M") select m.Datum).FirstOrDefault().ToShortDateString() + ").");
                 return;
             }
 
@@ -230,11 +196,43 @@ namespace Absentismus
                      select a).Count() > 2
                 )
             {
-                //ToDo: OM
+                Console.WriteLine(klasseName + ("OM Konf #2").PadRight(20) + "; fehlt " +
+                    (from a in Abwesenheiten
+                     where a.Datum > (from m in Maßnahmen where m.Kürzel.StartsWith("O") select m.Datum).FirstOrDefault()
+                     select a).Count()
+                     + " Tage unentschuldigt seit der OM #1 (" + (from m in Maßnahmen where m.Kürzel.StartsWith("O") select m.Datum).FirstOrDefault().ToShortDateString() + ").");
                 return;
             }
         }
 
+        internal void GetFehltUnunterbrochenUnentschuldigtSeitTagen(Feriens frns)
+        {
+            this.FehltUnunterbrochenUnentschuldigtSeitTagen = 0;
+
+            for (int t = -1; t > -28; t--)
+            {
+                DateTime tag = DateTime.Now.Date.AddDays(t);
+
+                if (!(tag.DayOfWeek == DayOfWeek.Sunday))
+                {
+                    if (!(tag.DayOfWeek == DayOfWeek.Saturday))
+                    {
+                        if (!frns.IstFerienTag(tag))
+                        {
+                            if ((from a in this.Abwesenheiten
+                                 where a.GanzerFehlTag == 1
+                                 where a.Datum.Date == tag.Date
+                                 where a.StudentId == Id
+                                 select a).Any())
+                            {
+                                FehltUnunterbrochenUnentschuldigtSeitTagen++;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    
         public Adresse Adresse { get; private set; }
 
         /// <summary>
@@ -266,19 +264,21 @@ namespace Absentismus
             Vorname = vorname;
             Klasse = klasse;
             Gebdat = gebdat;            
-            Bildungsgangeintrittsdatum = bildungsgangeintrittsdatum;            
+            Bildungsgangeintrittsdatum = bildungsgangeintrittsdatum;
+            Abwesenheiten = new List<Abwesenheit>();
+            Maßnahmen = new List<Maßnahme>();        
         }
         
         internal string Render(string m)
         {
-            var x = (from o in Maßnahmen where o.Kürzel == m select o).FirstOrDefault();
+            /* var x = (from o in Maßnahmen where o.Kürzel == m select o).FirstOrDefault();
 
-            if (x != null)
-            {
-                var z = (from aaa in x.AngemahnteAbwesenheitenDieserMaßnahme select aaa.Fehlstunden).Sum();
+             if (x != null)
+             {
+                 var z = (from aaa in x.AngemahnteAbwesenheitenDieserMaßnahme select aaa.Fehlstunden).Sum();
 
-                return x.Datum.ToShortDateString() + "(" + z + ")";
-            }
+                 return x.Datum.ToShortDateString() + "(" + z + ")";
+             }*/
             return "";
         }
         

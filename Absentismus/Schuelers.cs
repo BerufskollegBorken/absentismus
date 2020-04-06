@@ -65,12 +65,20 @@ WHERE vorgang_schuljahr = '" + Global.AktSjAtl + "'", connection);
                     }
 
                     connection.Close();
-                    Console.WriteLine(("Schüler " + ".".PadRight(this.Count / 150, '.')).PadRight(48, '.') + (" " + this.Count).ToString().PadLeft(4), '.');
+                    Console.WriteLine(("Schüler " + ".".PadRight(this.Count / 150, '.')).PadRight(47, '.') + (" " + this.Count).ToString().PadLeft(4), '.');
                 }
             }
             catch (Exception ex)
             {
                 throw ex;
+            }
+        }
+
+        internal void FehlzeitenUnunterbrochenSeitTagen(Feriens frns)
+        {
+            foreach (var schueler in this)
+            {
+                schueler.GetFehltUnunterbrochenUnentschuldigtSeitTagen(frns);
             }
         }
 
@@ -90,7 +98,9 @@ WHERE vorgang_schuljahr = '" + Global.AktSjAtl + "'", connection);
             {
                 schueler.Maßnahmen.AddRange((from m in maßnahmen
                                              where m.SchuelerId == schueler.Id
-                                             select m).ToList());
+                                             select m)
+                                             .OrderBy(k=>k.Datum)
+                                             .ToList());
             }
         }
 
@@ -98,12 +108,51 @@ WHERE vorgang_schuljahr = '" + Global.AktSjAtl + "'", connection);
         {
             Abwesenheiten abwesenheiten = new Abwesenheiten();
 
-            foreach (var schueler in this)
+            List<Schueler> x = this.ConvertAll(s => new Schueler(
+                s.Id, 
+                s.Nachname,
+                s.Vorname,
+                s.Gebdat,
+                s.Klasse,
+                s.Bildungsgangeintrittsdatum));
+
+            this.Clear();
+
+            for (int i = 0; i < x.Count; i++)
             {
-                schueler.Abwesenheiten.AddRange((from a in abwesenheiten
-                                                 where a.StudentId == schueler.Id
+                x[i].Abwesenheiten.AddRange((from a in abwesenheiten
+                                                 where a.StudentId == x[i].Id
                                                  select a).ToList());
-            }            
+
+                if (x[i].Abwesenheiten.Count > 0)
+                {
+                    this.Add(x[i]);
+                }
+            }
+            Console.WriteLine(("Schüler mit offenen Abwesenheiten " + ".".PadRight(this.Count / 150, '.')).PadRight(48, '.') + (" " + (this.Count)).ToString().PadLeft(4), '.');
+
+            var klassenMitOffnenenAbwesenheiten = (from k in this
+                                                   orderby k.Abwesenheiten.Count descending
+                                                   where k.Abwesenheiten.Count > 0
+                                                   select k.Klasse).Distinct();
+
+            string me = "Klassen mit hohen ungeklärten / offenen Schülerfehltagen (in Klammern): ";
+
+            foreach (var kl in klassenMitOffnenenAbwesenheiten)
+            {
+                int z = (from xx in this
+                         where xx != null
+                         where xx.Klasse != null
+                         where xx.Abwesenheiten != null
+                         where xx.Klasse.NameUntis == kl.NameUntis
+                         select xx.Abwesenheiten).Count();
+
+                if (z > 10)
+                {
+                    me += kl.NameUntis + " (" + z +"),";
+                }                
+            }
+            Console.WriteLine(me.TrimEnd(','));
         }
 
         internal void RenderFehlzeiten(Klasses klasses, string aktSjAtlantis, string connectionStringAtlantis, int sj, Feriens feriens)

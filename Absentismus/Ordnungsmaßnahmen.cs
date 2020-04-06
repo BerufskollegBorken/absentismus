@@ -29,8 +29,11 @@ WHERE vorgang_schuljahr = '" + Global.AktSjAtl + "' AND info_gruppe = 'STRAF' AN
                     foreach (DataRow theRow in dataSet.Tables["DBA.leistungsdaten"].Rows)
                     {
                         int schuelerId = Convert.ToInt32(theRow["ID"]);
+
                         DateTime datum = theRow["Datum"].ToString().Length < 3 ? new DateTime() : DateTime.ParseExact(theRow["Datum"].ToString(), "dd.MM.yyyy HH:mm:ss", System.Globalization.CultureInfo.InvariantCulture);
+
                         string kürzel = theRow["Kürzel"] == null ? "" : theRow["Kürzel"].ToString();
+
                         string beschreibung = theRow["Beschreibung"] == null ? "" : theRow["Beschreibung"].ToString();
                         
                         Maßnahme maßnahme = new Maßnahme(

@@ -13,6 +13,12 @@ namespace Absentismus
         public string Grund { get; internal set; }
         public string Status { get; internal set; }
         public bool IstSchulpflichtig { get; private set; }
+        
+        /// <summary>
+        /// 1 = Ja, ganzer Fehltag
+        /// 0 = Nein, kein ganzer Fehltag
+        /// </summary>
+        public int GanzerFehlTag { get; private set; }
 
         public Abwesenheit(string line)
         {
@@ -22,6 +28,7 @@ namespace Absentismus
             Klasse = x[3];
             Datum = GetDatum(x[4]);
             Fehlstunden = Convert.ToInt32(x[6]);
+            GanzerFehlTag = Convert.ToInt32(x[15]);
             Grund = x[8];
             Status = x[14];        
         }
