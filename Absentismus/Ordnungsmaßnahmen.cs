@@ -18,6 +18,7 @@ namespace Absentismus
                     OdbcDataAdapter schuelerAdapter = new OdbcDataAdapter(@"
 SELECT DBA.schue_sj.pu_id AS ID,
 DBA.schueler_info.s_typ_puin AS Kürzel,
+DBA.schueler_info.s_typ_puin_2 AS Bezeichnung,
 DBA.schueler_info.bezeichnung_2 AS Beschreibung,
 DBA.schueler_info.datum AS Datum
 FROM DBA.schueler_info CROSS JOIN DBA.schue_sj
@@ -35,10 +36,12 @@ WHERE vorgang_schuljahr = '" + Global.AktSjAtl + "' AND info_gruppe = 'STRAF' AN
                         string kürzel = theRow["Kürzel"] == null ? "" : theRow["Kürzel"].ToString();
 
                         string beschreibung = theRow["Beschreibung"] == null ? "" : theRow["Beschreibung"].ToString();
-                        
+                        string bezeichnung = theRow["Bezeichnung"] == null ? "" : theRow["Bezeichnung"].ToString();
+
                         Maßnahme maßnahme = new Maßnahme(
                             schuelerId,
                             beschreibung,
+                            bezeichnung,
                             datum,
                             kürzel
                             );

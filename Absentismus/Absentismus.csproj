@@ -72,6 +72,8 @@
     <Compile Include="Klasses.cs" />
     <Compile Include="Lehrer.cs" />
     <Compile Include="Lehrers.cs" />
+    <Compile Include="Mail.cs" />
+    <Compile Include="Mails.cs" />
     <Compile Include="Ordnungsmaßnahme.cs" />
     <Compile Include="Ordnungsmaßnahmen.cs" />
     <Compile Include="Periode.cs" />

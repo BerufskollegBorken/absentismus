@@ -93,8 +93,8 @@ namespace Absentismus
         {
             if (IstSchulpflichtig && BußgeldVerfahrenInLetzten12Monaten && ImLetztenMonatMehrAls1TagUnentschuldigtGefehlt)
             {
-                Console.WriteLine(SchuelerKlasseName + "fehlt trotz Bußgeldverharens");
-
+                Console.WriteLine(i.ToString().PadLeft(2) + ". " + SchuelerKlasseName + "fehlt trotz Bußgeldverharens");
+                i++;
                 return "<li>" + VornameNachname + " ist schulpflichtig und fehlt trotz Bußgeldverfahrens am " + LetztesBußgeldverfahrenAm + " seit dem " + FehltSeit + " " + UnentschuldigteFehlstunden + " Stunden an " + AnzahlNichtEntschuldigteTage + " Tagen unentschuldigt. <u>Bitte mit mir das weitere Vorgehen absprechen.</u>" + Tabelle + "</li>";
             }
 
@@ -178,7 +178,7 @@ namespace Absentismus
 
                 if (maßnahme != null)
                 {
-                    tabelle += "<li>" + day.Date.ToShortDateString() + "  " + maßnahme.Kürzel + " " + maßnahme.Beschreibung + "</li>";
+                    tabelle += "<li>" + day.Date.ToShortDateString() + "  " + maßnahme.Bezeichnung + " " + maßnahme.Beschreibung + "</li>";
                 }
 
                 var fehlzeit = (from t in Abwesenheiten where t.Status == "nicht entsch." where t.Datum.Date == day.Date select t).FirstOrDefault();

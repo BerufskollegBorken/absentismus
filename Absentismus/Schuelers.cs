@@ -12,8 +12,12 @@ namespace Absentismus
 {
     public class Schuelers : List<Schueler>
     {
+        public Mails Mails { get; private set; }
+
         public Schuelers(Klasses klss, Lehrers lehs)
         {
+            Mails = new Mails();
+
             try
             {
                 using (OdbcConnection connection = new OdbcConnection(Global.ConAtl))
@@ -83,7 +87,7 @@ WHERE vorgang_schuljahr = '" + Global.AktSjAtl + "'", connection);
             }
         }
 
-        internal void AnstehendeMaßnahmen(Klasses klss, string sender, string password)
+        internal void AnstehendeMaßnahmen(Klasses klss)
         {
             foreach (var kl in (from k in klss where !k.Jahrgang.StartsWith("BS")select k).ToList())
             {
@@ -117,47 +121,11 @@ WHERE vorgang_schuljahr = '" + Global.AktSjAtl + "'", connection);
 
                 if (mail)
                 {
-                    MailSenden(klassenleitung, subject, body, sender, password);
+                    this.Mails.Add(new Mail(klassenleitung, subject, body));                    
                 }                
             }
         }
-
-        public void MailSenden(Lehrer recipient, string subject, string body, string senderEmailId, string password)
-        {
-            ExchangeService service = new ExchangeService(ExchangeVersion.Exchange2013)
-            {
-                Credentials = new WebCredentials(senderEmailId, password)
-            };
-            service.AutodiscoverUrl(senderEmailId, RedirectionUrlValidationCallback);
-            EmailMessage emailMessage = new EmailMessage(service)
-            {
-                Subject = subject,
-                Body = new MessageBody(body)
-            };
-            emailMessage.ToRecipients.Add(recipient.Mail);
-            emailMessage.CcRecipients.Add("ursula.moritz@berufskolleg-borken.de");
-            emailMessage.BccRecipients.Add("stefan.baeumer@berufskolleg-borken.de");
-
-            emailMessage.Save(WellKnownFolderName.Drafts);
-        }
-
-        private static bool RedirectionUrlValidationCallback(string redirectionUrl)
-        {
-            // The default for the validation callback is to reject the URL.
-            bool result = false;
-
-            Uri redirectionUri = new Uri(redirectionUrl);
-
-            // Validate the contents of the redirection URL. In this simple validation
-            // callback, the redirection URL is considered valid if it is using HTTPS
-            // to encrypt the authentication credentials. 
-            if (redirectionUri.Scheme == "https")
-            {
-                result = true;
-            }
-            return result;
-        }
-
+       
         internal void ZurückliegendeMaßnahmen()
         {
             var maßnahmen = new Maßnahmen();

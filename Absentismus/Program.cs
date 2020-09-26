@@ -12,24 +12,7 @@ namespace Absentismus
             try
             {   
                 Console.WriteLine(Global.Titel);
-
-                Console.WriteLine("Bitte absender-Mail-Adresse angeben: [" + Properties.Settings.Default.Mail + "]");
-                var senderEmailId = Console.ReadLine();
-
-                if (senderEmailId != "")
-                {
-                    Properties.Settings.Default.Mail = senderEmailId;
-                    Properties.Settings.Default.Save();
-                }
-
-                if (senderEmailId == "" && Properties.Settings.Default.Mail != "")
-                {
-                    senderEmailId = Properties.Settings.Default.Mail;
-                }
                 
-                Console.WriteLine("Bitte Kennwort eintippen:");
-                var password = Console.ReadLine();
-
                 //Global.IstInputAbwesenheitenCsvVorhanden();
                 
                 var frns = new Feriens();
@@ -42,7 +25,8 @@ namespace Absentismus
                 schuelers.Abwesenheiten();
                 schuelers.ZurückliegendeMaßnahmen();
                 schuelers.FehlzeitenUnunterbrochenSeitTagen(frns);
-                schuelers.AnstehendeMaßnahmen(klss, senderEmailId, password);
+                schuelers.AnstehendeMaßnahmen(klss);
+                schuelers.Mails.Senden();
                 Console.WriteLine("Programm mit ENTER beenden.");
                 Console.ReadKey();
             }

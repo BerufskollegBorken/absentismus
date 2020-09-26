@@ -11,7 +11,7 @@ namespace Absentismus
         public static string InputAbwesenheitenCsv = @"c:\\users\\bm\\Downloads\\AbsencePerStudent.csv";
 
         public static string ConAtl = @"Dsn=Atlantis9;uid=DBA";
-
+        
         internal static void IstInputAbwesenheitenCsvVorhanden()
         {
             if (!File.Exists(Global.InputAbwesenheitenCsv))

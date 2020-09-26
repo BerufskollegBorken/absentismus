@@ -15,11 +15,13 @@ namespace Absentismus
         public int FehltUnunterbrochenUnentschuldigtSeitTagen { get; private set; }
         public string HtmlTabelle { get; private set; }
         public string MöglicheSanktion { get; private set; }
+        public string Bezeichnung { get; private set; }
 
-        public Maßnahme(int schuelerId, string beschreibung, DateTime datum, string kürzel)
+        public Maßnahme(int schuelerId, string beschreibung, string bezeichnung, DateTime datum, string kürzel)
         {
             SchuelerId = schuelerId;
             Beschreibung = beschreibung;
+            Bezeichnung = bezeichnung;
             Datum = datum;
             Kürzel = kürzel;
         }
