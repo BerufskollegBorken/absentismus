@@ -8,7 +8,7 @@ namespace Absentismus
 {
     public static class Global
     {
-        public static string InputAbwesenheitenCsv = Environment.GetFolderPath(Environment.SpecialFolder.Desktop) + "\\AbsencePerStudent.csv";
+        public static string InputAbwesenheitenCsv = @"c:\\users\\bm\\Downloads\\AbsencePerStudent.csv";
 
         public static string ConAtl = @"Dsn=Atlantis9;uid=DBA";
 
@@ -25,8 +25,8 @@ namespace Absentismus
                     RenderInputAbwesenheitenCsv(Global.InputAbwesenheitenCsv);
                 }
             }
-
         }
+
         private static void RenderInputAbwesenheitenCsv(string inputAbwesenheitenCsv)
         {
             Console.WriteLine("Die Datei " + inputAbwesenheitenCsv + " existiert nicht.");
@@ -34,7 +34,7 @@ namespace Absentismus
             Console.WriteLine(" 1. Klassenbuch > Berichte klicken");
             Console.WriteLine(" 2. Zeitraum definieren (z.B. letzte 30 Tage)");
             Console.WriteLine(" 3. \"Fehlzeiten pro Schüler\" pro Tag einstellen");
-            Console.WriteLine(" 4. Auf CSV-Ausgabe klicken");
+            Console.WriteLine(" 4. Auf Excel-Ausgabe klicken");
             Console.WriteLine("ENTER beendet das Programm.");
             Console.ReadKey();
             Environment.Exit(0);
@@ -65,7 +65,9 @@ namespace Absentismus
         public static string Titel {
             get
             {
-                return @" Absentismus | Published under the terms of GPLv3 | Stefan Bäumer 2020 | Version 20200330\n".PadRight(50, '=');
+                return @" Absentismus | Published under the terms of GPLv3 | Stefan Bäumer 2020 | Version 20200912
+==========================================================================================
+";
                 }
             }
 

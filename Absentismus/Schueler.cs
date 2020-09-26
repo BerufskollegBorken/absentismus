@@ -29,7 +29,7 @@ namespace Absentismus
             } 
         }
         public bool IstSchulpflichtig
-        {
+        {   
             get {
                 try
                 {
@@ -58,7 +58,7 @@ namespace Absentismus
                             }
                         }
                     }
-
+                    
                     // Wenn ein Berufsschüler ...
 
                     if (Klasse.Jahrgang.StartsWith("BS"))
@@ -89,120 +89,185 @@ namespace Absentismus
         
         public List<Maßnahme> Maßnahmen { get; set; }
 
-        internal void AusstehendeMaßnahme()
+        internal string SetAnstehendeMaßnahme()
         {
-            string klasseName = (Klasse.NameUntis.PadRight(6) + " " + (Nachname + "," + Vorname + "(" + (IstVolljährig ? "vj" : "mj") + "/" + (!IstSchulpflichtig ? "nsp" : "sp") + ")").Substring(0, Math.Min(Nachname.Length + 1 + Vorname.Length, 20))).PadRight(27) + ": ";
-
-            // SchulG §47 (1):  Das Schulverhältnis endet, wenn die nicht mehr schulpflichtige
-            // Schülerin oder der nicht mehr schulpflichtige Schüler trotz schriftlicher Erinnerung 
-            // ununterbrochen 20 Unterrichtstage unentschuldigt fehlt
-
-            if (!IstSchulpflichtig && FehltUnunterbrochenUnentschuldigtSeitTagen >= 12)
+            if (IstSchulpflichtig && BußgeldVerfahrenInLetzten12Monaten && ImLetztenMonatMehrAls1TagUnentschuldigtGefehlt)
             {
-                Console.WriteLine(klasseName + " SCHRIFTL. ERINNERUNG; fehlt seit " + FehltUnunterbrochenUnentschuldigtSeitTagen + " Tagen ununterbrochen."); 
-                return;
+                Console.WriteLine(SchuelerKlasseName + "fehlt trotz Bußgeldverharens");
+
+                return "<li><b>" + VornameNachname + "</b> ist schulpflichtig und fehlt trotz Bußgeldverfahrens am " + LetztesBußgeldverfahrenAm + " seit dem " + FehltSeit + " " + UnentschuldigteFehlstunden + " Stunden an " + AnzahlNichtEntschuldigteTage + " Tagen unentschuldigt. <u>Bitte sprechen Sie kurzfristig mit mir das weitere Vorgehen ab.</u>" + Tabelle + "</li>";
             }
 
-            // Bei Volljährigen, die seit 20 Tage ununterbrochen fehlen, schulen wir aus 
+            // SchulG §47 (1):  Das Schulverhältnis endet, wenn die nicht mehr schulpflichtige Schülerin oder der nicht mehr schulpflichtige Schüler 
+            // trotz schriftlicher Erinnerung 
+            // ununterbrochen 20 Unterrichtstage unentschuldigt fehlt
 
-            if (!IstSchulpflichtig && FehltUnunterbrochenUnentschuldigtSeitTagen >= 20)
+            if (!IstSchulpflichtig && FehltUnunterbrochenUnentschuldigtSeitTagen >= 15 && !SchriftlichErinnertInDenLetzten60Tagen)
             {
-                Console.WriteLine(klasseName + ("AUSSCHULUNG").PadRight(20) + "; fehlt seit " + FehltUnunterbrochenUnentschuldigtSeitTagen + " Tagen ununterbrochen.");
-                return;
+                Console.WriteLine(SchuelerKlasseName + "fehlt seit " + FehltUnunterbrochenUnentschuldigtSeitTagen + " Tagen ununterbrochen");
+
+                return "<li><b>" + Nachname + ", " + Vorname + "</b> ist nicht mehr schulpflichtig und fehlt ununterbrochen seit " + FehltUnunterbrochenUnentschuldigtSeitTagen + " Unterrichtstagen nicht entschuldigt. Bitte eine <u>schriftliche Erinnerung</u> <a href='https://recht.nrw.de/lmi/owa/br_bes_detail?sg=0&menu=1&bes_id=7345&anw_nr=2&aufgehoben=N&det_id=461191'>(SchulG § 47 (1), Satz 8)</a> bei <a href=\"mailto:ursula.moritz@berufskolleg-borken.de?subject=Schriftliche%20Erinnerung%20für%20" + Vorname + "%20" + Nachname + "%20(" + Klasse.NameUntis + ")\">Ursula Moritz</a> beauftragen. Wenn " + Vorname + " anschließend nicht unverzüglich den Unterricht aufnimmt, bitte die <u>Ausschulung im Schulbüro</u> beantragen." + Tabelle + "</li>";
+            }
+             
+            if (!IstSchulpflichtig && FehltUnunterbrochenUnentschuldigtSeitTagen >= 20 && SchriftlichErinnertInDenLetzten60Tagen)
+            {
+                string maßnahme = SchuelerKlasseName + "; fehlt seit " + FehltUnunterbrochenUnentschuldigtSeitTagen + " Tagen ununterbrochen.";
+
+                Console.WriteLine(maßnahme);
+
+                return "<li><b>" + VornameNachname + "</b> ist nicht mehr schulpflichtig und fehlt seit " + FehltUnunterbrochenUnentschuldigtSeitTagen + " Tagen ununterbrochen. " + Vorname + " wurde bereits schriftlich erinnert. Bitte die <u>Ausschulung</u> im Schulbüro beauftragen!" + Tabelle + "</li>";
             }
 
             // SchulG §53(4): Die Entlassung einer Schülerin oder eines Schülers, die oder der nicht mehr schulpflichtig ist, kann ohne vorherige Androhung erfolgen, wenn die Schülerin oder der Schüler innerhalb eines Zeitraumes von 30 Tagen insgesamt 20 Unterrichtsstunden unentschuldigt versäumt hat
 
-            if (!IstSchulpflichtig && (from a in Abwesenheiten
-                                       where a.Datum > DateTime.Now.AddDays(-30)
-                                       select a.Fehlstunden).Sum() > 20)
+            if (!IstSchulpflichtig && NichtEntschuldigteFehlstundenIn30Tagen > 20)
             {
-                Console.WriteLine(klasseName + ("AUSSCHULUNG").PadRight(20) +"; fehlt in den letzten 30 Tagen " + 
-                    (from a in Abwesenheiten
-                     where a.Datum > DateTime.Now.AddDays(-30)
-                     select a.Fehlstunden).Sum() 
-                     + " Stunden unentschuldigt.");
-                return;
+                string problem = " fehlt in den letzten 30 Tagen " + NichtEntschuldigteFehlstundenIn30Tagen + " Unterrichtsstunden ohne Entschuldigung.";
+
+                Console.WriteLine(SchuelerKlasseName + problem);
+
+                return "<li><b>" + Vorname + " " + Nachname + "</b>" + problem + " Da " + Vorname + " nicht mehr schulpflichtig ist, kommt die Anwendung von <a href='https://recht.nrw.de/lmi/owa/br_bes_detail?sg=0&menu=1&bes_id=7345&anw_nr=2&aufgehoben=N&det_id=461197'>SchulG §53 (4)</a> in Betracht. Bitte kurzfristig mit mir das weitere Vorgehen absprechen." + Tabelle + "</li>";
+            }
+            
+            if (!IrgendeineMaßnahmeInDenLetzten12Monaten && NichtEntschuldigteFehlminuten > 360)
+            {
+                var fehltSeit = " fehlt seit dem " + ((from a in Abwesenheiten select a.Datum).FirstOrDefault()).ToShortDateString() + " ";
+
+                string problem = fehltSeit + NichtEntschuldigteFehlminuten + " Minuten unentschuldigt. ";
+
+                Console.WriteLine(SchuelerKlasseName + problem);
+
+                return "<li><b>" + VornameNachname + "</b>" + problem + " Bitte eine <u>Mahnung</u> der Fehlzeiten bei <a href=\"mailto:ursula.moritz@berufskolleg-borken.de?subject=Mahnung%20der%20Fehlzeiten%20von%20" + Vorname + "%20" + Nachname + "%20(" + Klasse.NameUntis + ")\">Ursula Moritz</a> beauftragen!" + Tabelle + "</li>";
             }
 
-            // Wenn eine Schülerin oder ein Schüler mehr als ein Tag unentschuldigt gefehlt hat, und noch keine Maßnahme ergriffen wurde, wird das Erzieherische Gespräch mit der Klassenleitung geführt.
-
-            if (Maßnahmen.Count == 0 && (from a in Abwesenheiten
-                                         select a.Fehlstunden).Sum() > 8)
+            if (IrgendeineMaßnahmeInDenLetzten12Monaten && NichtEntschuldigteFehlminutenSeitLetzterMaßnahme > 360)
             {
-                Console.WriteLine(klasseName + ("ERZ. Gespr. KL").PadRight(20) + "; fehlt " +
-                    (from a in Abwesenheiten                     
-                     select a.Fehlstunden).Sum()
-                     + " Stunden unentschuldigt; bisher keine Maßnahme");
-                return;
+                var letzteMaßnahme = (from m in Maßnahmen select m).LastOrDefault();
+
+                var fehltSeit = " fehlt seit der letzten Maßnahme " + letzteMaßnahme.Kürzel + " " + letzteMaßnahme.Beschreibung + " am " + letzteMaßnahme.Datum.ToShortDateString() + " ";
+
+                string problem = fehltSeit + NichtEntschuldigteFehlminuten + " Minuten unentschuldigt. ";
+
+                Console.WriteLine(SchuelerKlasseName + problem);
+
+                return "<li><b>" + VornameNachname + "</b>" + problem + " Bitte eine <u>Mahnung</u> der Fehlzeiten bei <a href=\"mailto:ursula.moritz@berufskolleg-borken.de?subject=Mahnung%20der%20Fehlzeiten%20von%20" + Vorname + "%20" + Nachname + "%20(" + Klasse.NameUntis + ")\">Ursula Moritz</a> beauftragen!" + Tabelle + "</li>";
             }
 
-            // Wenn eine Schülerin oder ein Schüler mehr als zwei Tage unentschuldigt gefehlt hat,
-            // und noch keine Maßnahme ergriffen wurde, wird das Erzieherische Gespräch mit der SL geführt.
-
-            if (Maßnahmen.Count == 0 && (from a in Abwesenheiten
-                                         select a.Fehlstunden).Sum() > 16)
+            if (MehrAls10FehlzeitenIndenLetzten30Tagen)
             {
-                Console.WriteLine(klasseName + ("ERZ. Gespr. SL").PadRight(20) + "; fehlt " +
-                    (from a in Abwesenheiten                     
-                     select a.Fehlstunden).Sum()
-                     + " Stunden unentschuldigt; bisher keine Maßnahme");
-                return;
+                string problem = " hat insgesamt mehr als 10 Fehlzeiten in den letzten 30 Tagen angehäuft. ";
+                Console.WriteLine(SchuelerKlasseName + problem);
+
+                return "<li><b>" + VornameNachname + "</b>" + problem + " Bitte mit mir das weitere Vorgehen absprechen. Eine <u>Attestpflicht</u> erscheint sinnvoll." + Tabelle + "</li>";
+            }
+                        
+            return "";
+        }
+        
+        private string GetTabelle()
+        {
+            string tabelle = "<ul>";
+
+            for (var day = DateTime.Now.Date.AddDays(-360); day.Date <= DateTime.Now.Date; day = day.AddDays(1))
+            {
+                var maßnahme = (from m in Maßnahmen where m.Datum.Date == day.Date select m).FirstOrDefault();
+
+                if (maßnahme != null)
+                {
+                    tabelle += "<li>" + day.Date.ToShortDateString() + "  " + maßnahme.Kürzel + " " + maßnahme.Beschreibung + "</li>";
+                }
+
+                var fehlzeit = (from t in Abwesenheiten where t.Datum.Date == day.Date select t).FirstOrDefault();
+
+                if (fehlzeit != null)
+                {
+                    tabelle += "<li>" + day.Date.ToShortDateString() + "  Fehlzeitdauer: " + fehlzeit.Fehlminuten + " Minuten, Grund: " + fehlzeit.Grund + ", " + fehlzeit.Text + " Status: " + fehlzeit.Status + "</li>";
+                }
             }
 
-            // Wenn eine Schülerin oder ein Schüler zwei oder mehr Tage unentschuldigt seit dem Erzieherischen Gespräch mit der Schulleitung gefehlt hat, wird gemahnt.
+            tabelle += "</ul>";
+            return tabelle;
+        }
 
-            if (
-                    Maßnahmen.Count > 0 && 
-                    Maßnahmen[0].Kürzel.StartsWith("E") && 
-                    (from a in Abwesenheiten
-                     where a.Datum > Maßnahmen[0].Datum
-                     select a).Count() >= 2
-                )
-            {
-                Console.WriteLine(klasseName + ("MAHNUNG").PadRight(20) + "; fehlt " +
-                    (from a in Abwesenheiten
-                     where a.Datum > Maßnahmen[0].Datum
-                     select a).Count()
-                     + " Tage unentschuldigt seit dem Gespräch mit der Schulleitung (" + Maßnahmen[0].Datum.ToShortDateString() + ").");
-                return;
-            }
+        internal void Eigenschaften()
+        {
+            Tabelle = GetTabelle();
 
-            // Wenn eine Schülerin oder ein Schüler zwei Tage oder mehr unentschuldigt seit der Mahnung gefehlt hat, wird eine OM angesetzt.
+            SchuelerKlasseName = (Klasse.NameUntis.PadRight(6) + " " + (Nachname + "," + Vorname + "(" + (IstVolljährig ? "vj" : "mj") + "/" + (!IstSchulpflichtig ? "nsp" : "sp") + ")").Substring(0, Math.Min(Nachname.Length + 1 + Vorname.Length, 20))).PadRight(27) + ": ";
 
-            if (
-                    Maßnahmen.Count > 0 &&
-                    (from m in Maßnahmen where m.Kürzel.StartsWith("M") select m).Any() &&
-                    (from a in Abwesenheiten
-                     where a.Datum > (from m in Maßnahmen where m.Kürzel.StartsWith("M") select m.Datum).FirstOrDefault()
-                     select a).Count() > 2
-                )
-            {
-                Console.WriteLine(klasseName + ("OM Konf. #1").PadRight(20) + "; fehlt " +
-                    (from a in Abwesenheiten
-                     where a.Datum > (from m in Maßnahmen where m.Kürzel.StartsWith("M") select m.Datum).FirstOrDefault()
-                     select a).Count()
-                     + " Tage unentschuldigt seit der Mahnung (" + (from m in Maßnahmen where m.Kürzel.StartsWith("M") select m.Datum).FirstOrDefault().ToShortDateString() + ").");
-                return;
-            }
+            VornameNachname = Vorname + " " + Nachname;
 
-            // Wenn eine Schülerin oder ein Schüler mehr als zwei Tage unentschuldigt seit der ersten OM gefehlt hat, kommt die zweite OM.
+            DieLetzteStattgefundeneMaßnahmeDerVergangenen12Monate = (from m in Maßnahmen
+                                                                     where (m.Kürzel.StartsWith("M") || m.Kürzel.StartsWith("O"))
+                                                                     where DateTime.Now.AddDays(-360) < m.Datum
+                                                                     select m.Datum).LastOrDefault();
 
-            if (
-                    Maßnahmen.Count > 0 &&
-                    (from m in Maßnahmen where m.Kürzel.StartsWith("O") select m).Any() &&
-                    (from a in Abwesenheiten
-                     where a.Datum > (from m in Maßnahmen where m.Kürzel.StartsWith("O") select m.Datum).FirstOrDefault()
-                     select a).Count() > 2
-                )
-            {
-                Console.WriteLine(klasseName + ("OM Konf #2").PadRight(20) + "; fehlt " +
-                    (from a in Abwesenheiten
-                     where a.Datum > (from m in Maßnahmen where m.Kürzel.StartsWith("O") select m.Datum).FirstOrDefault()
-                     select a).Count()
-                     + " Tage unentschuldigt seit der OM #1 (" + (from m in Maßnahmen where m.Kürzel.StartsWith("O") select m.Datum).FirstOrDefault().ToShortDateString() + ").");
-                return;
-            }
+            IrgendeineMaßnahmeInDenLetzten12Monaten = (from m in Maßnahmen
+                                                       where (m.Kürzel.StartsWith("M") || m.Kürzel.StartsWith("O"))
+                                                       where DateTime.Now.AddDays(-360) < m.Datum
+                                                       select m).Any();
+
+            BußgeldVerfahrenInLetzten12Monaten = (from m in Maßnahmen
+                                                  where m.Kürzel.StartsWith("OWI")
+                                                  where DateTime.Now.AddDays(-360) < m.Datum
+                                                  select m).Any();
+
+            ImLetztenMonatMehrAls1TagUnentschuldigtGefehlt = (from a in Abwesenheiten
+                                                              where a.Datum > DateTime.Now.AddDays(-30)
+                                                              where a.Status == "nicht entsch."
+                                                              select a.Fehlminuten).Sum() > 360 ? true : false;
+
+            LetztesBußgeldverfahrenAm = (from m in Maßnahmen where m.Kürzel == "OWI" select m.Datum).LastOrDefault().ToShortDateString();
+
+            UnentschuldigteFehlminutenImLetztenMonat = (from a in Abwesenheiten where a.Datum > DateTime.Now.AddDays(-30)
+                                                        where a.Status == "nicht entsch."
+                                                        select a.Fehlminuten).Sum();
+
+            UnentschuldigteFehlstundenImLetztenMonat = (from a in Abwesenheiten
+                                                        where a.Datum > DateTime.Now.AddDays(-30)
+                                                        where a.Status == "nicht entsch."
+                                                        select a.Fehlstunden).Sum();
+
+            UnentschuldigteFehlstunden = (from a in Abwesenheiten
+                                          where a.Status == "nicht entsch."
+                                          select a.Fehlstunden).Sum();
+
+            AnzahlNichtEntschuldigteTage = (from a in Abwesenheiten
+                                            where a.Status == "nicht entsch."
+                                            select a.GanzerFehlTag).Sum();
+
+
+            NichtEntschuldigteFehlminuten = (from a in Abwesenheiten
+                                             where a.Status == "nicht entsch."
+                                             select a.Fehlminuten).Sum();
+
+            NichtEntschuldigteFehlminutenSeitLetzterMaßnahme = (from a in Abwesenheiten
+                                                                where a.Status == "nicht entsch."
+                                                                where ((from m in Maßnahmen where m.Datum >= DateTime.Now.AddDays(-360) select m).Any())
+                                                                where ((from m in Maßnahmen select m.Datum).LastOrDefault() < a.Datum)
+                                                                select a.Fehlminuten).Sum();
+
+
+            SchriftlichErinnertInDenLetzten60Tagen = (from m in Maßnahmen
+                                                      where m.Kürzel == "ER"
+                                                      where m.Datum >= DateTime.Now.AddDays(-30)
+                                                      select m).Any();
+
+            NichtEntschuldigteFehlstundenIn30Tagen = (from a in Abwesenheiten
+                                                      where a.Datum > DateTime.Now.AddDays(-30)
+                                                      where a.Status == "nicht entsch."
+                                                      select a.Fehlstunden).Sum();
+
+            OffeneStunden = (from a in Abwesenheiten                             
+                             where a.Status == "offen"
+                             select a).Count();
+
+            MehrAls10FehlzeitenIndenLetzten30Tagen = (from a in Abwesenheiten
+                                                      where a.Datum > DateTime.Now.AddDays(-30)
+                                                      select a).Count() > 10 ? true : false;
+
+            FehltSeit = (from a in Abwesenheiten                         
+                         select a.Datum).FirstOrDefault().ToShortDateString();
         }
 
         internal void GetFehltUnunterbrochenUnentschuldigtSeitTagen(Feriens frns)
@@ -256,6 +321,27 @@ namespace Absentismus
         public DateTime Bildungsgangeintrittsdatum { get; private set; }
         public Feriens Feriens { get; private set; }
         public int AktSj { get; private set; }
+        public Maßnahme AnstehendeMaßnahme { get; set; }
+        public bool BußgeldVerfahrenInLetzten12Monaten { get; set; }
+        public bool ImLetztenMonatMehrAls1TagUnentschuldigtGefehlt { get; set; }
+        public string LetztesBußgeldverfahrenAm { get; set; }
+        public int UnentschuldigteFehlminutenImLetztenMonat { get; set; }
+        public DateTime DieLetzteStattgefundeneMaßnahmeDerVergangenen12Monate { get; set; }
+        public string SchuelerKlasseName { get; set; }
+        public string Tabelle { get; set; }
+        public string VornameNachname { get; set; }
+        public bool SchriftlichErinnertInDenLetzten60Tagen { get; set; }
+        public int NichtEntschuldigteFehlstundenIn30Tagen { get; set; }
+        public int UnentschuldigteFehlMinutenSeitTrotzMaßnahmeOderÜberhaupt { get; set; }
+        public bool IrgendeineMaßnahmeInDenLetzten12Monaten { get; set; }
+        public int NichtEntschuldigteFehlminuten { get; set; }
+        public int NichtEntschuldigteFehlminutenSeitLetzterMaßnahme { get; set; }
+        public int OffeneStunden { get; private set; }
+        public bool MehrAls10FehlzeitenIndenLetzten30Tagen { get; private set; }
+        public int AnzahlNichtEntschuldigteTage { get; private set; }
+        public string FehltSeit { get; private set; }
+        public int UnentschuldigteFehlstundenImLetztenMonat { get; private set; }
+        public int UnentschuldigteFehlstunden { get; private set; }
 
         public Schueler(int id, string nachname, string vorname, DateTime gebdat, Klasse klasse, DateTime bildungsgangeintrittsdatum)
         {

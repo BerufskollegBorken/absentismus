@@ -1,4 +1,5 @@
-﻿using Microsoft.Office.Interop.Excel;
+﻿using Microsoft.Exchange.WebServices.Data;
+using Microsoft.Office.Interop.Excel;
 using System;
 using System.Collections.Generic;
 using System.Data;
@@ -82,12 +83,78 @@ WHERE vorgang_schuljahr = '" + Global.AktSjAtl + "'", connection);
             }
         }
 
-        internal void AnstehendeMaßnahmen()
+        internal void AnstehendeMaßnahmen(Klasses klss, string sender, string password)
         {
-            foreach (var schueler in this)
+            foreach (var kl in (from k in klss where k.Jahrgang.StartsWith("!BS")select k).ToList())
             {
-                schueler.AusstehendeMaßnahme();
+                Lehrer klassenleitung = kl.Klassenleitungen[0];
+
+                string subject = "Schulpflichtüberwachung in der Klasse " + kl.NameUntis;
+
+                string body = @"Hallo " + klassenleitung.Vorname + " " + klassenleitung.Nachname + ",<p>Sie bekommen diese Mail in Ihrer Eigenschaft als Klassenleitung der Klasse " + kl.NameUntis + ".</p><p>Ziel dieser Mail ist eine konsequente Verfolgung / Vorbeugung von Schulabsentismus.</p><ol>";
+            
+                bool mail = false;
+
+                int offeneStunden = 0;
+
+                foreach (var schueler in (from s in this where s.Klasse.NameUntis == kl.NameUntis select s).OrderBy(x=>x.Nachname).ThenBy(y=>y.Vorname).ToList())
+                {
+                    var maßnahme = schueler.SetAnstehendeMaßnahme();
+                    
+                    offeneStunden += schueler.OffeneStunden;
+
+                    if (maßnahme != "")
+                    {                        
+                        body += maßnahme;
+                        mail = true;                                                
+                    }
+                }
+                
+                var signatur = "</ol><div class=WordSection1><p class=MsoNormal><o:p>&nbsp;</o:p></p><p class=MsoNormal><o:p>&nbsp;</o:p></p><p class=MsoNormal><span lang=EN style='font-family:\"Tahoma\",sans-serif;mso-fareast-language:DE'><o:p></o:p></span></p><p class=MsoNormal><span lang=EN style='font-family:\"Tahoma\",sans-serif;mso-fareast-language:DE'><o:p>&nbsp;</o:p></span></p><p class=MsoNormal><span lang=EN style='font-family:\"Tahoma\",sans-serif;mso-fareast-language:DE'>Freundliche Grüße<o:p></o:p></span></p><p class=MsoNormal><span lang=EN style='font-family:\"Tahoma\",sans-serif;mso-fareast-language:DE'><o:p>&nbsp;</o:p></span></p><p class=MsoNormal><span lang=EN style='font-family:\"Tahoma\",sans-serif;mso-fareast-language:DE'>Stefan Bäumer<o:p></o:p></span></p><p class=MsoNormal><span lang=EN style='font-family:\"Tahoma\",sans-serif;mso-fareast-language:DE'>Stellvertretender Schulleiter<o:p></o:p></span></p><p class=MsoNormal><span lang=EN style='font-family:\"Tahoma\",sans-serif;mso-fareast-language:DE'><o:p>&nbsp;</o:p></span></p><p class=MsoNormal><span style='font-family:\"Tahoma\",sans-serif;mso-fareast-language:DE'>Berufskolleg Borken<br>Josefstraße 10<br>46325 Borken<br>fon +49(0) 2861 90990-0<br>fax +49(0) 2861 90990-55<br>e-mail <a href=\"mailto: stefan.baeumer @berufskolleg-borken.de\"><span style='color:blue'>stefan.baeumer@berufskolleg-borken.de</span></a><o:p></o:p></span></p><p class=MsoNormal><span lang=EN style='font-family:\"Tahoma\",sans-serif;mso-fareast-language:DE'><o:p>&nbsp;</o:p></span></p><p class=MsoNormal><span lang=EN style='font-family:\"Tahoma\",sans-serif;mso-fareast-language:DE'></a><o:p></o:p></span></p><p class=MsoNormal><o:p>&nbsp;</o:p></p></div>";
+
+                body += "</ul>" +
+                    "<h3>Weitere Hinweise:</h3><p>Bitte stets zuerst sicherstellen, dass im DigiKlas keine Fehlzeiten mehr offen sind. " + (offeneStunden > 0 ? "Aktuell " + offeneStunden + " offene Fehlzeiten." : "")  + " Bitte keine Entschuldigungen akzeptieren, die nicht <a href='https://recht.nrw.de/lmi/owa/br_bes_detail?sg=0&menu=1&bes_id=7345&anw_nr=2&aufgehoben=N&det_id=461187'>unverzüglich</a> eingereicht werden. Bitte keine notorischen Verspätungen entschuldigen. Weitere Hinweise zu <a href='https://teams.microsoft.com/l/file/0078B6D5-81F0-45FA-B531-25A9221B11F1?tenantId=bde93bf2-f69b-4968-8d34-68e9231b31be&fileType=pdf&objectUrl=https%3A%2F%2Fbkborken.sharepoint.com%2Fsites%2FKollegium2%2FFreigegebene%20Dokumente%2FInformationen%20der%20Schulleitung%2FDie%20Schulleitung%20informiert%2FDie%20Schulleitung%20informiert%202020-02.pdf&baseUrl=https%3A%2F%2Fbkborken.sharepoint.com%2Fsites%2FKollegium2&serviceName=teams&threadId=19:4c2bc4fbeb2244b2acf0de535a0927ee@thread.tacv2&groupId=f50b2866-8ad0-4022-a0b1-8caf6cfafd0f'>Beurlaubung und Befreiung</a> finden Sie <a href='https://teams.microsoft.com/l/file/0078B6D5-81F0-45FA-B531-25A9221B11F1?tenantId=bde93bf2-f69b-4968-8d34-68e9231b31be&fileType=pdf&objectUrl=https%3A%2F%2Fbkborken.sharepoint.com%2Fsites%2FKollegium2%2FFreigegebene%20Dokumente%2FInformationen%20der%20Schulleitung%2FDie%20Schulleitung%20informiert%2FDie%20Schulleitung%20informiert%202020-02.pdf&baseUrl=https%3A%2F%2Fbkborken.sharepoint.com%2Fsites%2FKollegium2&serviceName=teams&threadId=19:4c2bc4fbeb2244b2acf0de535a0927ee@thread.tacv2&groupId=f50b2866-8ad0-4022-a0b1-8caf6cfafd0f'>hier</a>." + signatur;
+
+                if (mail)
+                {
+                    MailSenden(klassenleitung, subject, body, sender, password);
+                }                
             }
+        }
+
+        public void MailSenden(Lehrer recipient, string subject, string body, string senderEmailId, string password)
+        {
+            ExchangeService service = new ExchangeService(ExchangeVersion.Exchange2013)
+            {
+                Credentials = new WebCredentials(senderEmailId, password)
+            };
+            service.AutodiscoverUrl(senderEmailId, RedirectionUrlValidationCallback);
+            EmailMessage emailMessage = new EmailMessage(service)
+            {
+                Subject = subject,
+                Body = new MessageBody(body)
+            };
+            emailMessage.ToRecipients.Add(recipient.Mail);
+            emailMessage.BccRecipients.Add("stefan.baeumer@berufskolleg-borken.de");
+
+            emailMessage.Save(WellKnownFolderName.Drafts);
+        }
+
+        private static bool RedirectionUrlValidationCallback(string redirectionUrl)
+        {
+            // The default for the validation callback is to reject the URL.
+            bool result = false;
+
+            Uri redirectionUri = new Uri(redirectionUrl);
+
+            // Validate the contents of the redirection URL. In this simple validation
+            // callback, the redirection URL is considered valid if it is using HTTPS
+            // to encrypt the authentication credentials. 
+            if (redirectionUri.Scheme == "https")
+            {
+                result = true;
+            }
+            return result;
         }
 
         internal void ZurückliegendeMaßnahmen()
@@ -101,6 +168,9 @@ WHERE vorgang_schuljahr = '" + Global.AktSjAtl + "'", connection);
                                              select m)
                                              .OrderBy(k=>k.Datum)
                                              .ToList());
+
+                schueler.Eigenschaften();
+                
             }
         }
 
@@ -129,6 +199,7 @@ WHERE vorgang_schuljahr = '" + Global.AktSjAtl + "'", connection);
                     this.Add(x[i]);
                 }
             }
+
             Console.WriteLine(("Schüler mit offenen Abwesenheiten " + ".".PadRight(this.Count / 150, '.')).PadRight(48, '.') + (" " + (this.Count)).ToString().PadLeft(4), '.');
 
             var klassenMitOffnenenAbwesenheiten = (from k in this
@@ -269,7 +340,7 @@ WHERE vorgang_schuljahr = '" + Global.AktSjAtl + "'", connection);
         "</br>" +
         "Sie erhaltenen diese Mail in Ihrer Eigenschaft als Klassenleitung der Klasse " + klasse.NameUntis + "." +
         "</br>" +
-        "Die unentschuldigten Fehlzeiten der letzten 30 Tage wurden überprüft. Bei der Durchsicht der Klasse " + klasse.NameUntis + " sind folgende Unregelmäßigkeiten aufgefallen:" +
+        "Die unentschuldigten Fehlzeiten der letzten 30 Tage wurden überprüft. Bei der Durchsicht Ihrer Klasse " + klasse.NameUntis + " sind folgende Unregelmäßigkeiten aufgefallen:" +
         "</br>"
         + meldung +
         "</br>Ihre Aufgabe als Klassenleitung ist Überwachung der Schulpflicht. Zu Ihrer Unterstützung hängen dieser Mail bereits alle Dokumente an.</br>" +

@@ -18,25 +18,8 @@ namespace Absentismus
         /// 1 = Ja, ganzer Fehltag
         /// 0 = Nein, kein ganzer Fehltag
         /// </summary>
-        public int GanzerFehlTag { get; private set; }
-
-        public Abwesenheit(string line)
-        {
-            var x = line.Split('\t');
-            StudentId = Convert.ToInt32(x[1]);
-            Name = x[0];
-            Klasse = x[3];
-            Datum = GetDatum(x[4]);
-            Fehlstunden = Convert.ToInt32(x[6]);
-            GanzerFehlTag = Convert.ToInt32(x[15]);
-            Grund = x[8];
-            Status = x[14];        
-        }
-
-        
-        private DateTime GetDatum(string datumString)
-        {
-            return DateTime.ParseExact(datumString, "dd.MM.yy", CultureInfo.InvariantCulture);
-        }
+        public int GanzerFehlTag { get; set; }
+        public int Fehlminuten { get; internal set; }
+        public dynamic Text { get; internal set; }
     }
 }
