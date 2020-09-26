@@ -30,7 +30,7 @@ namespace Absentismus
                 Console.WriteLine("Bitte Kennwort eintippen:");
                 var password = Console.ReadLine();
 
-                Global.IstInputAbwesenheitenCsvVorhanden();
+                //Global.IstInputAbwesenheitenCsvVorhanden();
                 
                 var frns = new Feriens();
                 var prds = new Periodes();
