@@ -21,7 +21,6 @@ namespace Absentismus
                 var lehs = new Lehrers(prds);
                 var klss = new Klasses(lehs, prds);                
                 var schuelers = new Schuelers(klss, lehs);
-                                
                 schuelers.Abwesenheiten();
                 schuelers.ZurückliegendeMaßnahmen();
                 schuelers.FehlzeitenUnunterbrochenSeitTagen(frns);

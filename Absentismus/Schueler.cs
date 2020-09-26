@@ -93,8 +93,8 @@ namespace Absentismus
         {
             if (IstSchulpflichtig && BußgeldVerfahrenInLetzten12Monaten && ImLetztenMonatMehrAls1TagUnentschuldigtGefehlt)
             {
-                Console.WriteLine(i.ToString().PadLeft(2) + ". " + SchuelerKlasseName + "fehlt trotz Bußgeldverharens");
-                i++;
+                Console.WriteLine(SchuelerKlasseName + "fehlt trotz Bußgeldverharens");
+                
                 return "<li>" + VornameNachname + " ist schulpflichtig und fehlt trotz Bußgeldverfahrens am " + LetztesBußgeldverfahrenAm + " seit dem " + FehltSeit + " " + UnentschuldigteFehlstunden + " Stunden an " + AnzahlNichtEntschuldigteTage + " Tagen unentschuldigt. <u>Bitte mit mir das weitere Vorgehen absprechen.</u>" + Tabelle + "</li>";
             }
 
