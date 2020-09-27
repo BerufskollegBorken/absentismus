@@ -94,8 +94,10 @@ namespace Absentismus
             if (IstSchulpflichtig && BußgeldVerfahrenInLetzten12Monaten && ImLetztenMonatMehrAls1TagUnentschuldigtGefehlt)
             {
                 Console.WriteLine(SchuelerKlasseName + "fehlt trotz Bußgeldverharens");
-                
-                return "<li>" + VornameNachname + " ist schulpflichtig und fehlt trotz Bußgeldverfahrens am " + LetztesBußgeldverfahrenAm + " seit dem " + FehltSeit + " " + UnentschuldigteFehlstunden + " Stunden an " + AnzahlNichtEntschuldigteTage + " Tagen unentschuldigt. <u>Bitte mit mir das weitere Vorgehen absprechen.</u>" + Tabelle + "</li>";
+
+                string mehrAls = (NichtEntschuldigteFehlminuten % NichtEntschuldigteFehlstunden > 0 ? "mehr als " : "");
+
+                return "<li>" + VornameNachname + " ist schulpflichtig und fehlt trotz Bußgeldverfahrens am " + LetztesBußgeldverfahrenAm + " seit dem " + FehltSeit + " " + mehrAls+ NichtEntschuldigteFehlstunden + " Stunden an " + AnzahlNichtEntschuldigteTage + " Tagen unentschuldigt. <u>Bitte mit mir das weitere Vorgehen absprechen.</u>" + Tabelle + "</li>";
             }
 
             // SchulG §47 (1):  Das Schulverhältnis endet, wenn die nicht mehr schulpflichtige Schülerin oder der nicht mehr schulpflichtige Schüler 
@@ -129,11 +131,13 @@ namespace Absentismus
                 return "<li><b>" + Vorname + " " + Nachname + "</b>" + problem + " Da " + Vorname + " nicht mehr schulpflichtig ist, kommt die Anwendung von <a href='https://recht.nrw.de/lmi/owa/br_bes_detail?sg=0&menu=1&bes_id=7345&anw_nr=2&aufgehoben=N&det_id=461197'>SchulG §53 (4)</a> in Betracht. Bitte mit mir das weitere Vorgehen absprechen." + Tabelle + "</li>";
             }
             
-            if (!IrgendeineMaßnahmeInDenLetzten12Monaten && UnentschuldigteFehlstunden > 6)
+            if (!IrgendeineMaßnahmeInDenLetzten12Monaten && NichtEntschuldigteFehlstunden > 8)
             {
+                string mehrAls = (NichtEntschuldigteFehlminuten % NichtEntschuldigteFehlstunden > 0 ? "mehr als " : "");
+
                 var fehltSeit = " fehlt seit dem " + ((from a in Abwesenheiten select a.Datum).FirstOrDefault()).ToShortDateString() + " ";
 
-                string problem = fehltSeit + "<b>" + UnentschuldigteFehlstunden + " Stunden </b> unentschuldigt. ";
+                string problem = fehltSeit + " " + mehrAls + "<b>" + NichtEntschuldigteFehlstunden + " Stunden </b> unentschuldigt. ";
 
                 Console.WriteLine(SchuelerKlasseName + problem);
 
@@ -231,16 +235,16 @@ namespace Absentismus
 
             LetztesBußgeldverfahrenAm = (from m in Maßnahmen where m.Kürzel == "OWI" select m.Datum).LastOrDefault().ToShortDateString();
 
-            UnentschuldigteFehlminutenImLetztenMonat = (from a in Abwesenheiten where a.Datum > DateTime.Now.AddDays(-30)
+            NichtEntschuldigteFehlminutenImLetztenMonat = (from a in Abwesenheiten where a.Datum > DateTime.Now.AddDays(-30)
                                                         where a.Status == "nicht entsch."
                                                         select a.Fehlminuten).Sum();
 
-            UnentschuldigteFehlstundenImLetztenMonat = (from a in Abwesenheiten
+            NichtEntschuldigteFehlstundenImLetztenMonat = (from a in Abwesenheiten
                                                         where a.Datum > DateTime.Now.AddDays(-30)
                                                         where a.Status == "nicht entsch."
                                                         select a.Fehlstunden).Sum();
 
-            UnentschuldigteFehlstunden = (from a in Abwesenheiten
+            NichtEntschuldigteFehlstunden = (from a in Abwesenheiten
                                           where a.Status == "nicht entsch."
                                           select a.Fehlstunden).Sum();
 
@@ -343,7 +347,7 @@ namespace Absentismus
         public bool BußgeldVerfahrenInLetzten12Monaten { get; set; }
         public bool ImLetztenMonatMehrAls1TagUnentschuldigtGefehlt { get; set; }
         public string LetztesBußgeldverfahrenAm { get; set; }
-        public int UnentschuldigteFehlminutenImLetztenMonat { get; set; }
+        public int NichtEntschuldigteFehlminutenImLetztenMonat { get; set; }
         public DateTime DieLetzteStattgefundeneMaßnahmeDerVergangenen12Monate { get; set; }
         public string SchuelerKlasseName { get; set; }
         public string Tabelle { get; set; }
@@ -358,8 +362,8 @@ namespace Absentismus
         public bool MehrAls10FehlzeitenIndenLetzten30Tagen { get; private set; }
         public int AnzahlNichtEntschuldigteTage { get; private set; }
         public string FehltSeit { get; private set; }
-        public int UnentschuldigteFehlstundenImLetztenMonat { get; private set; }
-        public int UnentschuldigteFehlstunden { get; private set; }
+        public int NichtEntschuldigteFehlstundenImLetztenMonat { get; private set; }
+        public int NichtEntschuldigteFehlstunden { get; private set; }
         public int NichtEntschuldigteFehlstundenSeitLetzterMaßnahme { get; private set; }
 
         public Schueler(int id, string nachname, string vorname, DateTime gebdat, Klasse klasse, DateTime bildungsgangeintrittsdatum)
